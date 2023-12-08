@@ -1,0 +1,257 @@
+# Integración
+Instalación de paquetes
+```{r}
+install.packages("readxl")
+library(readxl)
+```
+
+Configuración inicial
+
+```{r}
+# Ruta de los excels
+file_path <- "data/"
+# Comunidades autónomas por universidad
+indice_comunidades_autonomas <- c(
+  "Andalucía",
+  "Aragón",
+  "Asturias",
+  "Cantabria",
+  "Castilla y León",
+  "Castilla la Mancha",
+  "Cataluña",
+  "Extremadura",
+  "Galicia",
+  "Islas Baleares",
+  "Islas Canarias",
+  "La Rioja",
+  "Madrid",
+  "Murcia",
+  "Navarra",
+  "País Vasco",
+  "Valencia"
+)
+comunidades_autonomas <- list (
+  Andalucia = c("Cádiz", "Córdoba", "Granada", "Huelva", "Jaén", "Málaga", "Pablo de Olavide", "Sevilla"),
+  Aragon = c("Zaragoza"),
+  Asturias = c("Oviedo"),
+  Cantabria = c("Cantabria"),
+  Castilla_la_Mancha = c("Castilla-La Mancha"),
+  Castilla_y_Leon = c("Burgos", "León", "Salamanca", "Valladolid"),
+  Catalunya = c("Autónoma de Barcelona", "Barcelona", "Girona", "Lleida", "Politécnica de Catalunya", "Pompeu Fabra", "Rovira i Virgili"),
+  Extremadura = c("Extremadura"),
+  Galicia = c("A Coruña", "Santiago de Compostela", "Vigo"),
+  Islas_Baleares = c("Illes Balears (Les)"),
+  Islas_Canarias = c("La Laguna", "Las Palmas de Gran Canaria"),
+  La_Rioja = c("La Rioja"),
+  Madrid = c("Alcalá", "Autónoma de Madrid", "Carlos III de Madrid", "Complutense de Madrid", "Politécnica de Madrid", "Rey Juan Carlos"),
+  Murcia = c("Murcia", "Politécnica de Cartagena"),
+  Navarra = c("Pública de Navarra"),
+  Pais_Vasco = c("País Vasco/Euskal Herriko Unibertsitatea"),
+  Valencia = c("Alicante", "Jaume I de Castellón", "Miguel Hernández de Elche", "Politècnica de València", "València (Estudi General)")
+  
+)
+```
+# Dataset notas medias:
+Encontramos el archivo
+```{r}
+dataset_name <- "3_4_Mat_Sex_Nac_Amb_Univ(1).xlsx"
+
+excel_data <- read_excel(paste0(file_path, dataset_name))
+str(excel_data)
+```
+
+Verificamos que hemos leído bien el excel
+```{r}
+# Empezamos en la fila 8, ya que las anteriores son headers, y sólo leemos la primera columna
+f = 101
+c = 1
+current_element <- excel_data[f,c]
+print(current_element)
+# El elemento impreso por pantalla debería ser A Coruña
+```
+
+Iteramos las filas del excel, proceso determinados elementos para construir nuestras entradas
+```{r}
+# Inicializamos los índices de fila y columna
+f = 100
+c = 1
+# Inicializamos nuestro dataset
+dataset_zona_nacionalidad_ambito_estudio <- data.frame(
+  Comunidad_Autonoma = character(),
+  Universidad = character(),
+  Curso = character(),
+  Sexo = character(),
+  Ambito_estudio = character(),
+  Zona_nacionalidad = character(),
+  Numero_estudiantes = numeric()
+)
+# Indicamos qué estamos procesando
+proceso <- "buscando ámbito estudio"
+
+# Recorremos todas las columnas del fichero
+while (c < ncol((excel_data))) {
+  # Obtenemos el valor de la columna actual
+  if (proceso == "buscando ámbito estudio") {
+    current_element <- excel_data[6,c]
+  }
+  else {
+    current_element <- excel_data[f,1]
+  }
+  # Si es NA lo ignoramos
+  if (!is.na(current_element)) {
+    if (proceso == "añadir entrada") {
+      zonas_nacionalidad = c("España", "Unión Europea", "Resto de Europa", "EEUU y Canadá", "América Latina y Caribe", "Norte de África", "Resto de África", "Asia y Oceanía")
+      # Si la fila actual indica una zona de nacionalidad, añadimos la entrada
+      if (current_element %in% zonas_nacionalidad) {
+        i <- min_i - 1
+        while (i < max_i) {
+          i <- i + 1
+          nueva_entrada = c(
+            as.character(comunidad_autonoma),
+            as.character(universidad),
+            as.character(excel_data[7,i]),
+            as.character(sexo),
+            as.character(ambito_estudio),
+            as.character(current_element),
+            as.numeric(excel_data[f,i])
+          )
+          dataset_zona_nacionalidad_ambito_estudio <- rbind(dataset_zona_nacionalidad_ambito_estudio, nueva_entrada)
+        }
+      }
+      # Sino, tal vez sea un sexo
+      else {
+        if (current_element != "Total") {
+          proceso <- "buscando sexo"
+        }
+      }
+    }
+    # Si buscamos un sexo
+    if (proceso == "buscando sexo") {
+      if (current_element == "Ambos sexos") {
+        f <- f + 10
+        current_element <- excel_data[f,1]
+      }
+      sexos = c("Hombres", "Mujeres")
+      # Verificamos que es un sexo
+      if (current_element %in% sexos) {
+        # Si lo es, empezamos a añadir entradas al dataset
+        sexo <- current_element
+        proceso <- "añadir entrada"
+      }
+      # Si no lo es, tal vez sea una universidad
+      else {
+        proceso <- "buscando universidad"
+      }
+    }
+    # Si buscamos una universidad
+    if (proceso == "buscando universidad") {
+      ca = 1
+      # Verificamos que sea una universidad
+      for (universidades in comunidades_autonomas) {
+        # Registramos qué comunidad autónoma estamos inspeccionando
+        comunidad_autonoma <- indice_comunidades_autonomas[ca]
+        # Si es una universidad que pertenece a esta comunidad autónoma, empezamos a buscar           forma de admisión
+        if (current_element %in% universidades) {
+          universidad <- current_element
+          proceso <- "buscando sexo"
+          break
+        }
+        # Sino, tal vez pertenezca a otra comunidad autónoma (incrementamos el índice para           pasar a la siguiente comunidad autónoma)
+        else {
+          ca <- ca + 1
+        }
+      }
+    }
+    if (proceso == "buscando ámbito estudio") {
+      if (!grepl("total", tolower(current_element))) {
+        print(paste0("Añadiendo ", current_element))
+        min_i = c
+        max_i = c + 7
+        ambito_estudio <- current_element
+        proceso <- "buscando universidad"
+      }
+    }
+  }
+  if (proceso == "buscando ámbito estudio") {
+    c <- c + 1
+  }
+  else {
+    f <- f + 1
+    if (f > nrow(excel_data) - 6) {
+      f <- 100
+      proceso <- "buscando ámbito estudio"
+      c <- max_i
+    }
+  }
+}
+# Una vez tenemos nuestro dataset formado, nombramos las columnas
+nombre_columnas <- c("Comunidad Autónoma", "Universidad", "Curso", "Sexo", "Ámbito de estudio", "Zona de nacionalidad", "Número de estudiantes")
+colnames(dataset_zona_nacionalidad_ambito_estudio) <- nombre_columnas
+```
+
+Verificación de que el dataset está bien
+```{r}
+
+# Mirando el excel, sabemos que el número de hombres de España en A Coruña en 2022-2023 en el ámbito de Formación de docentes de enseñanza primaria es 38
+valor_validacion <- as.numeric(excel_data[114,26])
+# Buscamos esta misma entrada en el dataset
+atributos_busqueda <- c(
+  Comunidad_Autonoma = "Galicia",
+  Universidad = "A Coruña",
+  Curso = "2022-2023",
+  Sexo = "Hombres",
+  Ambito_estudio = "Formación de docentes de enseñanza primaria",
+  Zona_nacionalidad = "España"
+)
+resultado_busqueda <- dataset_zona_nacionalidad_ambito_estudio[
+  dataset_zona_nacionalidad_ambito_estudio$`Comunidad Autónoma` == atributos_busqueda["Comunidad_Autonoma"] &
+  dataset_zona_nacionalidad_ambito_estudio$Universidad == atributos_busqueda["Universidad"] & 
+  dataset_zona_nacionalidad_ambito_estudio$Curso == atributos_busqueda["Curso"] & 
+  dataset_zona_nacionalidad_ambito_estudio$Sexo == atributos_busqueda["Sexo"] & 
+  dataset_zona_nacionalidad_ambito_estudio$`Ámbito de estudio` == atributos_busqueda["Ambito_estudio"] & 
+  dataset_zona_nacionalidad_ambito_estudio$`Zona de nacionalidad` == atributos_busqueda["Zona_nacionalidad"],
+    ]
+
+# Y comparamos. Si son iguales, quiere decir que funciona
+print(resultado_busqueda$`Número de estudiantes` == valor_validacion)
+
+```
+
+```{r}
+
+# Mirando el excel, sabemos que el número de hombres de España en Alcalá en 2022-2023 en el ámbito de Formación de docentes de enseñanza infantil es 136
+valor_validacion <- as.numeric(excel_data[145,18])
+# Buscamos esta misma entrada en el dataset
+atributos_busqueda <- c(
+  Comunidad_Autonoma = "Madrid",
+  Universidad = "Alcalá",
+  Curso = "2022-2023",
+  Sexo = "Hombres",
+  Ambito_estudio = "Formación de docentes de enseñanza infantil",
+  Zona_nacionalidad = "España"
+)
+resultado_busqueda <- dataset_zona_nacionalidad_ambito_estudio[
+  dataset_zona_nacionalidad_ambito_estudio$`Comunidad Autónoma` == atributos_busqueda["Comunidad_Autonoma"] &
+  dataset_zona_nacionalidad_ambito_estudio$Universidad == atributos_busqueda["Universidad"] & 
+  dataset_zona_nacionalidad_ambito_estudio$Curso == atributos_busqueda["Curso"] & 
+  dataset_zona_nacionalidad_ambito_estudio$Sexo == atributos_busqueda["Sexo"] & 
+  dataset_zona_nacionalidad_ambito_estudio$`Ámbito de estudio` == atributos_busqueda["Ambito_estudio"] & 
+  dataset_zona_nacionalidad_ambito_estudio$`Zona de nacionalidad` == atributos_busqueda["Zona_nacionalidad"],
+    ]
+
+# Y comparamos. Si son iguales, quiere decir que funciona
+print(resultado_busqueda$`Número de estudiantes` == valor_validacion)
+
+```
+
+Extracción del dataset
+```{r}
+install.packages("readr")
+library(readr)
+
+extraction_path <- paste0(file_path,"dataset_zona_nacionalidad_ambito_estudio.csv")
+
+readr::write_excel_csv(dataset_zona_nacionalidad_ambito_estudio, file = extraction_path)
+
+cat("Dataset exported to", extraction_path, "\n")
+```
