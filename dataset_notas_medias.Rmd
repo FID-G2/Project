@@ -1,0 +1,244 @@
+# Integración
+Instalación de paquetes
+```{r}
+install.packages("readxl")
+library(readxl)
+```
+
+Configuración inicial
+
+```{r}
+# Ruta de los excels
+file_path <- "data/"
+# Comunidades autónomas por universidad
+indice_comunidades_autonomas <- c(
+  "Andalucía",
+  "Aragón",
+  "Asturias",
+  "Cantabria",
+  "Castilla y León",
+  "Castilla la Mancha",
+  "Cataluña",
+  "Extremadura",
+  "Galicia",
+  "Islas Baleares",
+  "Islas Canarias",
+  "La Rioja",
+  "Madrid",
+  "Murcia",
+  "Navarra",
+  "País Vasco",
+  "Valencia"
+)
+comunidades_autonomas <- list (
+  Andalucia = c("Cádiz", "Córdoba", "Granada", "Huelva", "Jaén", "Málaga", "Pablo de Olavide", "Sevilla"),
+  Aragon = c("Zaragoza"),
+  Asturias = c("Oviedo"),
+  Cantabria = c("Cantabria"),
+  Castilla_la_Mancha = c("Castilla-La Mancha"),
+  Castilla_y_Leon = c("Burgos", "León", "Salamanca", "Valladolid"),
+  Catalunya = c("Autónoma de Barcelona", "Barcelona", "Girona", "Lleida", "Politécnica de Catalunya", "Pompeu Fabra", "Rovira i Virgili"),
+  Extremadura = c("Extremadura"),
+  Galicia = c("A Coruña", "Santiago de Compostela", "Vigo"),
+  Islas_Baleares = c("Illes Balears (Les)"),
+  Islas_Canarias = c("La Laguna", "Las Palmas de Gran Canaria"),
+  La_Rioja = c("La Rioja"),
+  Madrid = c("Alcalá", "Autónoma de Madrid", "Carlos III de Madrid", "Complutense de Madrid", "Politécnica de Madrid", "Rey Juan Carlos"),
+  Murcia = c("Murcia", "Politécnica de Cartagena"),
+  Navarra = c("Pública de Navarra"),
+  Pais_Vasco = c("País Vasco/Euskal Herriko Unibertsitatea"),
+  Valencia = c("Alicante", "Jaume I de Castellón", "Miguel Hernández de Elche", "Politècnica de València", "València (Estudi General)")
+  
+)
+```
+# Dataset notas medias:
+Encontramos el archivo
+```{r}
+dataset_name <- "3_6_NI_Nota_media_Sex_Rama_Univ(1).xlsx"
+
+excel_data <- read_excel(paste0(file_path, dataset_name))
+str(excel_data)
+```
+
+Verificamos que hemos leído bien el excel
+```{r}
+# Empezamos en la fila 8, ya que las anteriores son headers, y sólo leemos la primera columna
+f = 8
+c = 1
+current_element <- excel_data[f,c]
+print(current_element)
+# El elemento impreso por pantalla debería ser A Coruña
+```
+
+Iteramos las filas del excel, proceso determinados elementos para construir nuestras entradas
+```{r}
+# Inicializamos los índices de fila y columna
+f = 8
+c = 1
+# Inicializamos nuestro dataset
+dataset_notas_medias <- data.frame(
+  Comunidad_Autonoma = character(),
+  Universidad = character(),
+  Curso = character(),
+  Sexo = character(),
+  Forma_de_admision = character(),
+  Rama_de_enseñanza = character(),
+  Nota_media = numeric()
+)
+print(dataset_notas_medias)
+# Indicamos qué estamos procesando
+proceso <- "buscando universidad"
+
+# Recorremos todas las filas del fichero
+while (f < nrow(excel_data) - 6) {
+  # Obtenemos el valor de la fila actual
+  current_element <- excel_data[f,1]
+  # Si es NA lo ignoramos
+  if (!is.na(current_element)) {
+    # Si estamos en el proceso de añadir una entrada
+    if (proceso == "añadir entrada") {
+      sexos = c("Hombres", "Mujeres")
+      # Si la fila actual indica un sexo, añadimos la entrada
+      if (current_element %in% sexos) {
+        while (c < 9) {
+          c <- c + 1
+          nueva_entrada = c(
+            as.character(comunidad_autonoma),
+            as.character(universidad),
+            as.character(excel_data[7,c]),
+            as.character(current_element),
+            as.character(forma_de_admision),
+            as.character(rama_de_enseñanza),
+            as.numeric(excel_data[f,c])
+          )
+          dataset_notas_medias <- rbind(dataset_notas_medias, nueva_entrada)
+        }
+        c <- 1
+      }
+      # Sino, tal vez sea una rama de enseñanza
+      else {
+        proceso <- "buscando rama de enseñanza"
+      }
+    }
+    # Si estamos buscando una rama de enseñanza
+    if (proceso == "buscando rama de enseñanza") {
+      ramas_de_enseñanza = c("Ciencias Sociales y Jurídicas", "Ingeniería y Arquitectura", "Artes y Humanidades", "Ciencias de la Salud", "Ciencias")
+      # Verificamos que el elemento actual es una rama de enseñanza posible
+      if (current_element %in% ramas_de_enseñanza) {
+        # Si lo es, almacenamos el valor y nos preparamos para añadir entradas a la tabla
+        rama_de_enseñanza <- current_element
+        proceso <- "añadir entrada"
+      }
+      # Si no es una rama de enseñanza, tal vez sea una forma de admisión
+      else {
+        proceso <- "buscando forma de admisión"
+      }
+    }
+    # Si buscamos una forma de admisión
+    if (proceso == "buscando forma de admisión") {
+      formas_de_admision = c("PAU", "FP")
+      # Verificamos que es una forma de admisión>
+      if (current_element %in% formas_de_admision) {
+        # Si lo es, buscamos una rama de enseñanza
+        forma_de_admision <- current_element
+        proceso <- "buscando rama de enseñanza"
+      }
+      # Si no lo es, tal vez sea una universidad
+      else {
+        proceso <- "buscando universidad"
+      }
+    }
+    # Si buscamos una universidad
+    if (proceso == "buscando universidad") {
+      i = 1
+      # Verificamos que sea una universidad
+      for (universidades in comunidades_autonomas) {
+        # Registramos qué comunidad autónoma estamos inspeccionando
+        comunidad_autonoma <- indice_comunidades_autonomas[i]
+        # Si es una universidad que pertenece a esta comunidad autónoma, empezamos a buscar           forma de admisión
+        if (current_element %in% universidades) {
+          universidad <- current_element
+          proceso <- "buscando forma de admisión"
+          break
+        }
+        # Sino, tal vez pertenezca a otra comunidad autónoma (incrementamos el índice para           pasar a la siguiente comunidad autónoma)
+        else {
+          i <- i + 1
+        }
+      }
+    }
+  }
+  f <- f + 1
+}
+# Una vez tenemos nuestro dataset formado, nombramos las columnas
+nombre_columnas <- c("Comunidad Autónoma", "Universidad", "Curso", "Sexo", "Forma de admisión" , "Rama de enseñanza", "Nota media")
+colnames(dataset_notas_medias) <- nombre_columnas
+```
+
+Verificación de que el dataset está bien
+```{r}
+
+# Mirando el excel, sabemos que la nota media de los hombres en A Coruña en 2022-2023 en la PAU en la rama de Ciencias Sociales y Jurídicas es de 9.67
+valor_validacion <- as.numeric(excel_data[11,2])
+# Buscamos esta misma entrada en el dataset
+atributos_busqueda <- c(
+  Comunidad_Autonoma = "Galicia",
+  Universidad = "A Coruña",
+  Curso = "2022-2023",
+  Sexo = "Hombres",
+  Forma_de_admision = "PAU",
+  Rama_de_enseñanza = "Ciencias Sociales y Jurídicas"
+)
+resultado_busqueda <- dataset_notas_medias[
+  dataset_notas_medias$`Comunidad Autónoma` == atributos_busqueda["Comunidad_Autonoma"] &
+  dataset_notas_medias$Universidad == atributos_busqueda["Universidad"] & 
+  dataset_notas_medias$Curso == atributos_busqueda["Curso"] & 
+  dataset_notas_medias$Sexo == atributos_busqueda["Sexo"] & 
+  dataset_notas_medias$`Forma de admisión` == atributos_busqueda["Forma_de_admision"] & 
+  dataset_notas_medias$`Rama de enseñanza` == atributos_busqueda["Rama_de_enseñanza"],
+    ]
+
+# Y comparamos. Si son iguales, quiere decir que funciona
+print(resultado_busqueda$`Nota media` == valor_validacion)
+
+```
+
+```{r}
+
+# Mirando el excel, sabemos que la nota media de las mujeres en Pompeu Fabra en 2017-2018 en la FP en la rama de Ciencias de la Salud es de 8.91
+valor_validacion <- as.numeric(excel_data[1225,7])
+# Buscamos esta misma entrada en el dataset
+atributos_busqueda <- c(
+  Comunidad_Autonoma = "Cataluña",
+  Universidad = "Pompeu Fabra",
+  Curso = "2017-2018",
+  Sexo = "Mujeres",
+  Forma_de_admision = "FP",
+  Rama_de_enseñanza = "Ciencias de la Salud"
+)
+resultado_busqueda <- dataset_notas_medias[
+  dataset_notas_medias$`Comunidad Autónoma` == atributos_busqueda["Comunidad_Autonoma"] &
+  dataset_notas_medias$Universidad == atributos_busqueda["Universidad"] & 
+  dataset_notas_medias$Curso == atributos_busqueda["Curso"] & 
+  dataset_notas_medias$Sexo == atributos_busqueda["Sexo"] & 
+  dataset_notas_medias$`Forma de admisión` == atributos_busqueda["Forma_de_admision"] & 
+  dataset_notas_medias$`Rama de enseñanza` == atributos_busqueda["Rama_de_enseñanza"],
+    ]
+
+# Y comparamos. Si son iguales, quiere decir que funciona
+print(resultado_busqueda$`Nota media` == valor_validacion)
+
+```
+
+Extracción del dataset
+```{r}
+install.packages("readr")
+library(readr)
+
+extraction_path <- paste0(file_path,"dataset_notas_medias.csv")
+
+#write.csv(dataset_notas_medias, file = file(extraction_path,encoding="UTF-8"), fileEncoding = "UTF-8")
+readr::write_excel_csv(dataset_notas_medias, file = extraction_path)
+
+cat("Dataset exported to", extraction_path, "\n")
+```
