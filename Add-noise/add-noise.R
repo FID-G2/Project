@@ -30,4 +30,4 @@ print(cantidad_na_por_columna)
 
 
 # Guardar el nuevo conjunto de datos con ruido en un archivo CSV
-write.csv(datos_ruido, file = "dataset_ruido.csv", row.names = FALSE)
+write.csv(datos_ruido, file = paste0("dataset_ruido_", porcentaje, ".csv"), row.names = FALSE)
