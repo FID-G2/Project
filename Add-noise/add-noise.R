@@ -1,5 +1,5 @@
 #setwd("C:/Users/David/Desktop/WD FID/Project/Add-noise")
-
+setwd("C:/Users/Windows/Documents/GitHub/Project/Add-noise")
 #EJECUTAR ESTO PRIMERO
 #######################################################################################
 # Cargar el archivo CSV original
