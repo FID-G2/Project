@@ -1,0 +1,122 @@
+# **Visualización: Histograma, Diagrama de Dispersión y Diagrama Violín.**
+
+## Bibliotecas necesarias
+
+```{r}
+# Instalar las bibliotecas si aún no las tienes instaladas
+#install.packages("ggplot2")
+#install.packages("dplyr")
+```
+
+```{r}
+# Cargar las bibliotecas
+library(ggplot2)
+library(dplyr)
+```
+
+## Lectura del dataset
+
+```{r}
+# Leer los datos desde el archivo CSV
+datos <- read.csv("../Add-noise/dataset_integrado.csv", header = TRUE, stringsAsFactors = FALSE)
+
+# Asignar nombres a las columnas
+colnames(datos) <- c("Ciudad", "Universidad", "Año", "Genero", "Nivel", "Campo", "Nota", "Carrera", "Region", "Cantidad")
+
+# Convertir la columna "Nota" a tipo numérico
+datos$Nota <- as.numeric(datos$Nota)
+```
+
+## Técnicas de visualización
+
+### Histograma
+
+```{r}
+# Definir la función para crear histogramas de nota por carrera
+crear_histograma <- function(datos, campo) {
+  # Filtra los datos para la carrera específica
+  datos_filtrados <- datos %>% filter(Campo == campo)
+  
+  # Crea el histograma
+  ggplot(datos_filtrados, aes(x = Nota)) +
+    geom_histogram(binwidth = 0.5, fill = "blue", color = "black", alpha = 0.7) +
+    labs(title = paste("Histograma de notas de", campo),
+         x = "Nota",
+         y = "Frecuencia") +
+    theme_minimal()
+}
+```
+
+```{r}
+campos_distintos <- unique(datos$Campo)
+
+for (campo in campos_distintos) {
+  histograma <- crear_histograma(datos, campo)
+  print(histograma)
+}
+```
+
+### Diagrama de Dispersión
+
+```{r}
+# Definir la función para crear diagramas de dispersión por campo, año y género
+crear_diagrama_dispersion <- function(datos, campo) {
+  # Filtrar los datos para el campo específico
+  datos_filtrados <- datos %>% filter(Campo == campo)
+  
+  # Crear el diagrama de dispersión
+  ggplot(datos_filtrados, aes(x = Año, y = Nota, color = Genero)) +
+    geom_point() +
+    labs(title = paste("Diagrama de dispersión de notas por año y género en", campo),
+         x = "Año",
+         y = "Nota") +
+    theme_minimal()
+}
+```
+
+```{r}
+# Obtener la lista de campos distintos
+campos_distintos <- unique(datos$Campo)
+
+# Iterar sobre cada campo y crea un diagrama de dispersión
+for (campo in campos_distintos) {
+  diagrama_dispersion <- crear_diagrama_dispersion(datos, campo)
+  print(diagrama_dispersion)
+}
+```
+
+### Diagrama Violín
+
+```{r}
+
+# Definir la función para crear diagramas de violín por campo, año y género
+crear_diagrama_violin <- function(datos, campo) {
+  # Filtrar los datos para el campo específico
+  datos_filtrados <- datos %>% filter(Campo == campo)
+  
+  # Crear el diagrama de violín
+  ggplot(datos_filtrados, aes(x = Año, y = Nota, fill = Genero)) +
+    geom_violin(trim = FALSE) +
+    labs(title = paste("Diagrama de violín de notas por año y género en", campo),
+         x = "Año",
+         y = "Nota") +
+    theme_minimal()
+}
+```
+
+```{r}
+
+# Obtener la lista de campos distintos
+campos_distintos <- unique(datos$Campo)
+
+# Iterar sobre cada campo y crea un diagrama de violín
+for (campo in campos_distintos) {
+  diagrama_violin <- crear_diagrama_violin(datos, campo)
+  print(diagrama_violin)
+}
+```
+
+```{r}
+
+
+```
