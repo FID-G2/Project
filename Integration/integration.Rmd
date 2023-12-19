@@ -1,0 +1,153 @@
+# Integración
+Instalamos los paquetes
+```{r}
+install.packages("dplyr")
+install.packages("readr")
+library(dplyr)
+```
+
+Leemos los ficheros
+```{r}
+# Set the path to your CSV file
+csv_notas_medias <- "data/dataset_notas_medias.csv"
+csv_zona_nacionalidad_ambito_estudio <- "data/dataset_zona_nacionalidad_ambito_estudio.csv"
+
+# Use read.csv() to read the CSV file into a data frame
+dataset_notas_medias <- read.csv(csv_notas_medias)
+dataset_zona_nacionalidad_ambito_estudio <- read.csv(csv_zona_nacionalidad_ambito_estudio)
+
+# Print the first few rows of the data frame
+head(dataset_notas_medias)
+head(dataset_zona_nacionalidad_ambito_estudio)
+```
+
+Configuración inicial
+
+```{r}
+# Ramas de enseñanza por ámbito de estudio
+indice_ramas_enseñanza <- c(
+  "Ciencias Sociales y Jurídicas",
+  "Ingeniería y Arquitectura",
+  "Artes y Humanidades",
+  "Ciencias de la Salud",
+  "Ciencias"
+)
+ramas_enseñanza <- list (
+  Ciencias_Sociales_y_Juridicas = c(
+    "Derecho",
+    "Economía",
+    "Administración y gestión de empresas",
+    "Periodismo e información",
+    "Trabajo social y orientación"
+  ),
+  Ingenieria_y_Arquitectura = c(
+    "Ingenierías",
+    "Arquitectura y construcción"
+  ),
+  Artes_y_Humanidades = c(
+    "Artes",
+    "Lenguas",
+    "Humanidades"
+  ),
+  Ciencias_de_la_Salud = c(
+    "Medicina",
+    "Enfermería y atención a enfermos"
+  ),
+  Ciencias = c(
+    "Ciencias de la vida",
+    "Ciencias Físicas, químicas, geológicas",
+    "Matemática y Estadística",
+    "Informática"
+  )
+)
+```
+
+Iteramos las filas de los datasets, integrándolos
+```{r}
+# Inicializamos los índices de fila
+f1 = 1
+f2 = 1
+# Inicializamos el nuevo dataset
+dataset_integrado <- data.frame(
+  Comunidad_Autonoma = character(),
+  Universidad = character(),
+  Curso = character(),
+  Sexo = character(),
+  Forma_admision = character(),
+  Rama_enseñanza = character(),
+  Nota_media = numeric(),
+  Ambito_estudio = character(),
+  Zona_nacionalidad = character(),
+  Numero_estudiantes = numeric()
+)
+
+# Recorremos el dataset de notas medias
+while (f1 < nrow(dataset_notas_medias)) {
+  # Obtenemos el elemento actual
+  current_element <- dataset_notas_medias[f1,]
+  # Registramos sus datos
+  comunidad_autonoma <- current_element$Comunidad.Autónoma
+  universidad <- current_element$Universidad
+  curso <- current_element$Curso
+  forma_admision <- current_element$Forma.de.admisión
+  rama_enseñanza <- current_element$Rama.de.enseñanza
+  sexo <- current_element$Sexo
+  nota_media <- current_element$Nota.media
+  
+  # Preparamos la búsqueda de los elementos que queremos del otro dataset
+  atributos_busqueda <- c(
+    Comunidad_Autonoma = comunidad_autonoma,
+    Universidad = universidad,
+    Curso = curso,
+    Sexo = sexo
+  )
+  
+  # Realizamos la búsqueda
+  resultado_busqueda <- dataset_zona_nacionalidad_ambito_estudio[
+      dataset_zona_nacionalidad_ambito_estudio$`Comunidad.Autónoma` == atributos_busqueda["Comunidad_Autonoma"] &
+      dataset_zona_nacionalidad_ambito_estudio$Universidad == atributos_busqueda["Universidad"] & 
+      dataset_zona_nacionalidad_ambito_estudio$Curso == atributos_busqueda["Curso"] & 
+      dataset_zona_nacionalidad_ambito_estudio$Sexo == atributos_busqueda["Sexo"],
+  ]
+  
+  # Filtramos para que sólo tengamos resultados cuyos ámbitos de estudio existan en la rama de enseñanza de nuestra entrada
+  indice_rama_enseñanza <- which(indice_ramas_enseñanza == rama_enseñanza)
+  ambitos_estudio <- ramas_enseñanza[[indice_rama_enseñanza]]
+  filtered_data <- resultado_busqueda %>%
+    filter(Ámbito.de.estudio %in% ambitos_estudio)
+  
+  f2 = 1
+  # Añadimos entradas nuevas
+  while (f2 < nrow(filtered_data)) {
+    nueva_entrada = c(
+      as.character(comunidad_autonoma),
+      as.character(universidad),
+      as.character(curso),
+      as.character(sexo),
+      as.character(forma_admision),
+      as.character(rama_enseñanza),
+      as.numeric(nota_media),
+      as.character(filtered_data[f2,]$Ámbito.de.estudio),
+      as.character(filtered_data[f2,]$Zona.de.nacionalidad),
+      as.character(filtered_data[f2,]$Número.de.estudiantes)
+    )
+    dataset_integrado <- rbind(dataset_integrado, nueva_entrada)
+    f2 <- f2 + 1
+  }
+  f1 <- f1 + 1
+}
+# Una vez tenemos nuestro dataset formado, nombramos las columnas
+nombre_columnas <- c("Comunidad Autónoma", "Universidad", "Curso", "Sexo", "Forma de admisión" , "Rama de enseñanza", "Nota media", "Ámbito de estudio", "Zona de nacionalidad", "Número de estudiantes")
+colnames(dataset_integrado) <- nombre_columnas
+```
+
+Extracción del dataset
+```{r}
+library(readr)
+
+extraction_path <- "data/dataset_integrado.csv"
+
+readr::write_excel_csv(dataset_integrado, file = extraction_path)
+
+cat("Dataset exported to", extraction_path, "\n")
+```
