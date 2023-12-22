@@ -1,0 +1,74 @@
+```{r}
+
+# Lectura del dataset
+df <- read.csv("../Add-noise/dataset_integrado.csv")
+```
+
+Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
+
+```{r}
+
+detectar_atipicos_iqr <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+  
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(columna_interes, 0.25)
+  Q3 <- quantile(columna_interes, 0.75)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Identificar valores atípicos
+  valores_atipicos <- df[columna_interes > umbral_superior | columna_interes < umbral_inferior, ]
+  
+  # Devolver los valores atípicos
+  valores_atipicos
+}
+
+```
+
+```{r}
+
+# Uso de la función "detectar_atipicos_iqr" con la columna "Nota media"
+atipicos_iqr <- detectar_atipicos_iqr(df, "Nota media")
+
+# Valores atípicos detectados en la columna 'Nota media'
+print(atipicos_iqr)
+```
+
+El **método de Z-Score** calcula cuántas desviaciones estándar un punto de datos está lejos de la media. Los puntos con un Z-Score alto o bajo en valor absoluto se consideran atípicos.
+
+```{r}
+
+detectar_atipicos_z <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+  
+  #TODO: Modificar
+  # Imputar valores nulos con la media de la columna
+  columna_interes[is.na(columna_interes)] <- mean(columna_interes, na.rm = TRUE)
+  
+  # Calcular el Z-Score
+  z_scores <- scale(columna_interes)
+  
+  # Establecer un umbral de Z-Score para identificar valores atípicos
+  umbral_z_score <- 2  # Se puede ajustar este valor según las necesidades
+  
+  # Identificar valores atípicos basados en el Z-Score
+  valores_atipicos_z <- df[abs(z_scores) > umbral_z_score, ]
+  
+  valores_atipicos_z
+}
+```
+
+```{r}
+
+# Uso de la función "detectar_atipicos_z" con la columna "Nota media"
+atipicos_z <- detectar_atipicos_z(df, "Nota media")
+
+# Valores atípicos detectados en la columna 'Nota media'
+print(atipicos_z)
+```
