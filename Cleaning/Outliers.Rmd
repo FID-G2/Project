@@ -4,6 +4,8 @@
 df <- read.csv("../Add-noise/dataset_integrado.csv")
 ```
 
+### Detección de outliers
+
 Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
 
 ```{r}
@@ -71,4 +73,102 @@ atipicos_z <- detectar_atipicos_z(df, "Nota media")
 
 # Valores atípicos detectados en la columna 'Nota media'
 print(atipicos_z)
+```
+
+### Tratamiento de outliers
+
+Imputación con la media de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_media_no_atipicos <- function(df, columna) {
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(df[[columna]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df[[columna]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Identificar valores atípicos
+  atipicos <- df[[columna]] > umbral_superior | df[[columna]] < umbral_inferior
+  
+  # Calcular la media excluyendo los valores atípicos
+  media_no_atipicos <- mean(df[[columna]][!atipicos], na.rm = TRUE)
+  
+  # Reemplazar valores atípicos con la media de los no atípicos
+  df[[columna]][atipicos] <- media_no_atipicos
+  
+  df
+}
+```
+
+Imputación con la mediana de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_mediana <- function(df, columna) {
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(df[[columna]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df[[columna]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Identificar valores atípicos
+  atipicos <- df[[columna]] > umbral_superior | df[[columna]] < umbral_inferior
+  
+  # Calcular la mediana excluyendo los valores atípicos
+  mediana_no_atipicos <- median(df[[columna]][!atipicos], na.rm = TRUE)
+  
+  # Reemplazar valores atípicos con la mediana de los no atípicos
+  df[[columna]][atipicos] <- mediana_no_atipicos
+  
+  df
+}
+```
+
+Eliminación de filas con outliers
+
+```{r}
+
+eliminar_filas_outliers <- function(df, columna) {
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(df[[columna]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df[[columna]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Eliminar filas con valores atípicos
+  df_filtrado <- df[!(df[[columna]] > umbral_superior | df[[columna]] < umbral_inferior), , drop = FALSE]
+  
+  df_filtrado
+}
+```
+
+Imputación con valor específico
+
+```{r}
+
+reemplazar_outliers_con_valor <- function(df, columna, valor_reemplazo) {
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(df[[columna]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df[[columna]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Reemplazar valores atípicos con el valor especificado
+  df[[columna]][df[[columna]] > umbral_superior | df[[columna]] < umbral_inferior] <- valor_reemplazo
+  
+  df
+}
 ```
