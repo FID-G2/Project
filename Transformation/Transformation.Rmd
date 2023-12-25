@@ -1,0 +1,55 @@
+```{r}
+library(dplyr)
+```
+
+## Leemos el dataset
+
+```{r}
+data = read.csv('../data/CleanData/dataClean.csv')
+print(data)
+```
+
+```{r}
+crear_interaccion <- function(data, columnas, nombre_interaccion, mantener_columnas_originales = FALSE) {
+  interaccion <- interaction(data %>% select(columnas), sep = "_")
+  data <- data %>%
+    mutate({{nombre_interaccion}} := interaccion)
+  
+  if (!mantener_columnas_originales) {
+    data <- data %>%
+      select(-one_of(columnas))
+  }
+  
+  return(data)
+}
+
+```
+
+```{r}
+data_transf <- data %>%
+  group_by(Rama.de.enseñanza, Ámbito.de.estudio) %>%
+  mutate(Nota.media = mean(Nota.media) + rnorm(n(), mean = 0, sd = 2)) %>%
+  ungroup()
+
+data_transf
+```
+## Nueva columnas, interacciones entre diferentes variables
+
+```{r}
+data_transf <- crear_interaccion(data_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
+
+data_transf <- crear_interaccion(data_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Rama_Ambito_Sexo, TRUE)
+
+data_transf
+```
+## Columna diferencia entre nota media y nota media por comunidad
+
+```{r}
+data_transf <- data_transf %>%
+  group_by(`Comunidad.Autónoma`) %>%
+  mutate(Diferencia_Nota_Media = Nota.media - mean(Nota.media)) %>%
+  ungroup()
+
+data_transf
+```
+

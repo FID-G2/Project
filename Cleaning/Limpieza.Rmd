@@ -122,12 +122,18 @@ valores_validos <- list(
 
 ```{r}
 # change the first row sexo value to helicopter --> QUITAR ESTO CUANDO TENGA EL DATASET CON RUIDO BUENO
-data_redondeo_estandar$Sexo[1] <- "Helicopter"
-print(data_redondeo_estandar)
+#data_redondeo_estandar$Sexo[1] <- "Helicopter"
+#print(data_redondeo_estandar)
 
 #Probar la funcion con la columna sexo
-data_rellenar_valores_atipicos <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valores_validos, "mas_probable")
-data_rellenar_valores_atipicos
+data_clean <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valores_validos, "mas_probable")
+data_clean
+```
+```{r}
+#eliminate na rows
+data_clean <- data_clean[complete.cases(data_clean), ]
+
+write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
 ```
 
 
