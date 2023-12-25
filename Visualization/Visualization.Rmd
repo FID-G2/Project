@@ -1,0 +1,319 @@
+```{r}
+#install.packages("scales")
+#install.packages("pheatmap")
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(pheatmap)
+library(tidyr)
+data = read.csv('../Add-noise/dataset_ruido.csv')
+#data = read.csv('../data/IntegrationData/dataset_integrado.csv')
+data = data %>% drop_na()
+data2 = data %>% group_by(`Comunidad.Autónoma`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data3 = data %>% group_by(`Universidad`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data4 = data %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data5 = data %>% filter(Sexo == "Hombres") %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data6 = data %>% filter(Sexo == "Mujeres") %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data7 = data %>% group_by(`Forma.de.admisión`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data8 = data %>% group_by(`Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data9 = data %>% group_by(`Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data10 = data %>% group_by(`Zona.de.nacionalidad`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data11 = data %>% group_by(`Comunidad.Autónoma`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data12 = data %>% group_by(`Universidad`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data13 = data %>% group_by(`Rama.de.enseñanza`, `Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data14 = data %>% group_by(`Forma.de.admisión`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data15 = data %>% group_by(`Forma.de.admisión`, `Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data16 = data %>% group_by(`Rama.de.enseñanza`, `Curso`) %>% summarise(num_estudiantes = sum(`Número.de.estudiantes`))
+data17 = data %>% group_by(`Rama.de.enseñanza`, `Sexo`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data18 = data %>% group_by(`Forma.de.admisión`, `Sexo`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+```
+
+```{r}
+crear_grafico_barras <- function(data, x_var, title){
+  ggplot(data, aes(x = !!sym(x_var))) +
+    geom_bar(fill = "skyblue") +
+    labs(title = title, x = x_var, y = "Frecuencia") + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Función para crear gráfico de barras apiladas
+crear_grafico_barras_apiladas <- function(data, x_var, y_var, fill_var, title){
+  ggplot(data, aes(x = !!sym(x_var), y = !!sym(y_var), fill = !!sym(fill_var))) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = title, x = x_var, y = y_var) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+# Gráficos de barras
+
+## Frecuencias de las variables
+```{r}
+grafico_comunidad_autonoma <- crear_grafico_barras(data, "Comunidad.Autónoma", "Frecuencia por Comunidad Autónoma")
+grafico_universidad <- crear_grafico_barras(data, "Universidad", "Frecuencia por Universidad")
+grafico_curso <- crear_grafico_barras(data, "Curso", "Frecuencia por Curso")
+grafico_sexo <- crear_grafico_barras(data, "Sexo", "Frecuencia por Sexo")
+grafico_forma_admision <- crear_grafico_barras(data, "Forma.de.admisión", "Frecuencia por Forma de admisión")
+grafico_rama_ensenanza <- crear_grafico_barras(data, "Rama.de.enseñanza", "Frecuencia por Rama de enseñanza")
+grafico_ambito_estudio <- crear_grafico_barras(data, "Ámbito.de.estudio", "Frecuencia por Ámbito de estudio")
+grafico_zona_nacionalidad <- crear_grafico_barras(data, "Zona.de.nacionalidad", "Frecuencia por Zona de nacionalidad")
+
+grafico_comunidad_autonoma
+grafico_universidad
+grafico_curso
+grafico_sexo
+grafico_forma_admision
+grafico_rama_ensenanza
+grafico_ambito_estudio
+grafico_zona_nacionalidad
+```
+## Notas medias por variables
+```{r}
+grafico_notas_comunidad_autonoma <- crear_grafico_barras_apiladas(data2, "Comunidad.Autónoma", "nota_media", "", "Nota Media por Comunidad Autónoma")
+grafico_notas_universidad <- crear_grafico_barras_apiladas(data3, "Universidad", "nota_media", "", "Nota Media por Universidad")
+grafico_notas_curso <- crear_grafico_barras_apiladas(data4, "Curso", "nota_media", "", "Nota Media por Curso")
+grafico_notas_forma_admision <- crear_grafico_barras_apiladas(data7, "Forma.de.admisión", "nota_media", "", "Nota Media por Forma de admisión")
+grafico_notas_rama_ensenanza <- crear_grafico_barras_apiladas(data8, "Rama.de.enseñanza", "nota_media", "", "Nota Media por Rama de enseñanza")
+grafico_notas_ambito_estudio <- crear_grafico_barras_apiladas(data9, "Ámbito.de.estudio", "nota_media", "", "Nota Media por Ámbito de estudio")
+grafico_notas_zona_nacionalidad <- crear_grafico_barras_apiladas(data10, "Zona.de.nacionalidad", "nota_media", "", "Nota Media por Zona de nacionalidad")
+grafico_notas_curso_hombres <- crear_grafico_barras_apiladas(data5, "Curso", "nota_media", "", "Nota Media por Curso de Hombres")
+grafico_notas_curso_mujeres <-crear_grafico_barras_apiladas(data6, "Curso","nota_media","", "Nota Media por Curso de Mujeres")
+
+grafico_notas_comunidad_autonoma
+grafico_notas_universidad
+grafico_notas_curso
+grafico_notas_forma_admision
+grafico_notas_rama_ensenanza
+grafico_notas_ambito_estudio
+grafico_notas_zona_nacionalidad
+grafico_notas_curso_mujeres
+grafico_notas_curso_hombres
+```
+```{r}
+grafico_notas_comunidad_ambito <- crear_grafico_barras_apiladas(data11, "Comunidad.Autónoma", "nota_media", "Rama.de.enseñanza", "Nota Media por Comunidad Autónoma y Rama de enseñanza")
+
+grafico_notas_universidad_ambito <- crear_grafico_barras_apiladas(data12, "Universidad", "nota_media", "Rama.de.enseñanza", "Nota Media por Universidad y Rama de enseñanza")
+
+grafico_notas_rama_ambito <- crear_grafico_barras_apiladas(data13, "Rama.de.enseñanza", "nota_media", "Ámbito.de.estudio", "Nota Media por Rama de enseñanza y Ámbito de estudio")
+
+grafico_notas_forma_rama <- crear_grafico_barras_apiladas(data14, "Forma.de.admisión", "nota_media", "Rama.de.enseñanza", "Nota Media por Forma de admisión y Rama de enseñanza")
+
+grafico_notas_forma_ambito <- crear_grafico_barras_apiladas(data15, "Forma.de.admisión", "nota_media", "Ámbito.de.estudio", "Nota Media por Forma de admisión y Ámbito de estudio")
+
+grafico_notas_comunidad_ambito
+grafico_notas_universidad_ambito
+grafico_notas_rama_ambito
+grafico_notas_forma_rama
+grafico_notas_forma_ambito
+```
+
+
+
+```{r}
+ggplot(data, aes(x = `Comunidad.Autónoma`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por Comunidad Autónoma", x = "Comunidad Autónoma", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data2, aes(x = `Comunidad.Autónoma`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Comunidad Autónoma", x = "Comunidad Autónoma", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Universidad`)) +
+  geom_bar(fill = "skyblue") + 
+  labs(title = "Frecuencia por Universidad", x = "Universidad", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data3, aes(x = `Universidad`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Universidad", x = "Universidad", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Curso`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por curso", x = "Curso", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# crear un nuevo data frame con las frecuencias de curso segun la nota media y su diagrama de barras
+ggplot(data4, aes(x = `Curso`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Curso", x = "Curso", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Sexo`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por sexo", x = "Sexo", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data5, aes(x = `Curso`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Curso de Hombres", x = "Curso", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data6, aes(x = `Curso`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Curso de Mujeres", x = "Curso", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Forma.de.admisión`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por forma de admision", x = "Forma de admision", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data7, aes(x = `Forma.de.admisión`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Forma de admision", x = "Forma de admision", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Rama.de.enseñanza`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por Rama de enseñanza", x = "Rama de enseñanza", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data8, aes(x = `Rama.de.enseñanza`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Rama de enseñanza", x = "Rama de enseñanza", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = `Ámbito.de.estudio`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por Ambito de estudio", x = "Ambito de estudio", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+
+ggplot(data9, aes(x = `Ámbito.de.estudio`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Ambito de estudio", x = "Ambito de estudio", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+ggplot(data, aes(x = `Zona.de.nacionalidad`)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Frecuencia por Zona de nacionalidad", x = "Zona de nacionalidad", y = "Frecuencia") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+
+ggplot(data10, aes(x = `Zona.de.nacionalidad`, y = nota_media)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Nota Media por Zona de nacionalidad", x = "Zona de nacionalidad", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+\
+
+```{r}
+ggplot(data11, aes(x = `Comunidad.Autónoma`, y = nota_media, fill = `Rama.de.enseñanza`)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Nota Media por Comunidad Autonoma y Rama de enseñanza", x = "Comunidad Autonoma", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data12, aes(x = `Universidad`, y = nota_media, fill = `Rama.de.enseñanza`)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Nota Media por Universidad y Rama de enseñanza", x = "Universidad", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data13, aes(x = `Rama.de.enseñanza`, y = nota_media, fill = `Ámbito.de.estudio`)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Nota Media por Rama de enseñanza y Ambito de estudio", x = "Rama de enseñanza", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data14, aes(x = `Forma.de.admisión`, y = nota_media, fill = `Rama.de.enseñanza`)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Nota Media por Forma de admisión y Rama de enseñanza", x = "Forma de admisión", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data15, aes(x = `Forma.de.admisión`, y = nota_media, fill = `Ámbito.de.estudio`)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Nota Media por Forma de admisión y Ambito de estudio", x = "Forma de admisión", y = "Nota Media") + 
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Estudiantes por Curso
+
+```{r}
+ggplot(data = data, aes(x = `Curso`, y = `Número.de.estudiantes`), fill = 'Curso') +
+  geom_bar(stat = "summary", fun = "sum") +
+  scale_y_continuous(labels = comma_format()) + 
+  labs(title = "Suma de Número de Estudiantes por Curso") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Box plots
+
+```{r}
+# see with a box plot if there are outliers in the nota media
+ggplot(data, aes(x = "", y = Nota.media)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Boxplot de la Nota Media") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+#boxplot de numero de estudiantes por rama de enseñanza y curso
+ggplot(data16, aes(x = `Rama.de.enseñanza`, y = num_estudiantes)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Boxplot de Número de Estudiantes por Rama de enseñanza y Curso") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#SIN QUITAR LOS NA NO FUNCIONA
+```
+
+```{r}
+ggplot(data17, aes(x = `Rama.de.enseñanza`, y = Sexo, fill = nota_media)) +
+  geom_tile() +
+  labs(title = "Heatmap de la Nota Media por Rama de enseñanza y Sexo") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# see the correlation with a heatmap beteen nota media and forma de admision and sexo
+
+
+ggplot(data18, aes(x = `Forma.de.admisión`, y = Sexo, fill = nota_media)) +
+  geom_tile() +
+  labs(title = "Heatmap de la Nota Media por Forma de admisión y Sexo") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
