@@ -1,0 +1,133 @@
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+# Lectura y comprobacion
+
+## Leemos el dataset
+
+```{r}
+data = read.csv('../Add-noise/dataset_ruido.csv')
+print(data)
+```
+
+## Comprobamos los valores de los datos
+
+```{r}
+summary(data)
+```
+
+## Funciones para solucionar datos columna 'Numero de estudiantes'
+```{r}
+redondeo_estandar <- function(df, columna) {
+    df[[columna]] <- round(df[[columna]])
+    return(df)
+}
+
+redondeo_arriba <- function(df, columna) {
+    df[[columna]] <- ceiling(df[[columna]])
+    return(df)
+}
+
+redondeo_abajo <- function(df, columna) {
+    df[[columna]] <- floor(df[[columna]])
+    return(df)
+}
+
+sustituir_constante <- function(df, columna, constante = 20) {
+    df[[columna]][is.na(df[[columna]])] <- constante
+    return(df)
+}
+
+rellenar_media <- function(df, columna) {
+    media <- mean(df[[columna]], na.rm = TRUE)
+    df[[columna]][is.na(df[[columna]])] <- as.integer(round(media))
+    df[[columna]] <- as.integer(df[[columna]])
+    return(df)
+}
+
+rellenar_mediana <- function(df, columna) {
+    mediana <- median(df[[columna]], na.rm = TRUE)
+    df[[columna]][is.na(df[[columna]])] <- as.integer(round(mediana))
+    df[[columna]] <- as.integer(df[[columna]])
+    return(df)
+}
+
+```
+
+```{r}
+#Como hay valores negativos, los sustituimos por el valor '0'
+data[data < 0] <- 0
+
+# Aplicamos las funciones a la columna 'Numero de estudiantes', creamos un nuevo dataset con cada funcion
+data_redondeo_estandar <- redondeo_estandar(data, "Número.de.estudiantes")
+data_redondeo_arriba <- redondeo_arriba(data, "Número.de.estudiantes")
+data_redondeo_abajo <- redondeo_abajo(data, "Número.de.estudiantes")
+data_sustituir_constante <- sustituir_constante(data, "Número.de.estudiantes")
+data_rellenar_media <- rellenar_media(data, "Número.de.estudiantes")
+data_rellenar_mediana <- rellenar_mediana(data, "Número.de.estudiantes")
+```
+
+```{r}
+# Comprobamos que los datos son correctos con summary solo de la columna 'Numero de estudiantes'
+summary(data_redondeo_estandar$Número.de.estudiantes)
+summary(data_redondeo_arriba$Número.de.estudiantes)
+summary(data_redondeo_abajo$Número.de.estudiantes)
+summary(data_sustituir_constante$Número.de.estudiantes)
+summary(data_rellenar_media$Número.de.estudiantes)
+summary(data_rellenar_mediana$Número.de.estudiantes)
+```
+## Funciones para solucionar datos para las columnas categóricas
+```{r}
+rellenar_valores_atipicos <- function(df, columnas, valores_validos, metodo, constante = NULL) {
+  for (columna in columnas) {
+    valores_validos_columna <- valores_validos[[columna]]
+    valores_invalidos <- df[[columna]][!(df[[columna]] %in% valores_validos_columna)]
+    
+    if (metodo == "constante") {
+      if (!is.null(constante)) {
+        if (length(valores_invalidos) > 0) {
+          df[[columna]][!(df[[columna]] %in% valores_validos_columna)] <- constante
+        }
+      } else {
+        stop("Por favor, proporciona un valor para la constante.")
+      }
+    } else if (metodo == "mas_probable") {
+      if (length(valores_invalidos) > 0) {
+        valor_mas_probable <- names(which.max(table(df[[columna]][df[[columna]] %in% valores_validos_columna])))
+        df[[columna]][!(df[[columna]] %in% valores_validos_columna)] <- valor_mas_probable
+      }
+    } else {
+      stop("El método proporcionado no es válido. Usa 'constante' o 'mas_probable'.")
+    }
+  }
+  return(df)
+}
+
+
+
+columnas <- c("Sexo", "Universidad", "Admisión", "Zona.de.nacionalidad", "Rama.de.enseñanza", "Comunidad.Autónoma")
+valores_validos <- list(
+    Sexo = c("Hombres", "Mujeres"),
+    Admisión = c("PAU", "FP"),
+    Zona.de.nacionalidad = c("España", "Unión Europea", "Resto de Europa", "EEUU y Canadá", "América Latina y Caribe", "Norte de África", "Resto de África", "Asia y Oceanía"),
+    Rama.de.enseñanza = c("Artes y Humanidades", "Ciencias", "Ciencias de la Salud", "Ciencias Sociales y Jurídicas", "Ingeniería y Arquitectura"),
+    Comunidad.Autónoma = c("Andalucía", "Aragón", "Asturias", "Baleares", "Canarias", "Cantabria", "Castilla y León", "Castilla-La Mancha", "Cataluña", "Ceuta y Melilla", "Comunidad Valenciana", "Extremadura", "Galicia", "La Rioja", "Madrid", "Murcia", "Navarra", "País Vasco"),
+    Universidad = c("Cádiz", "Córdoba", "Granada", "Huelva", "Jaén", "Málaga", "Pablo de Olavide", "Sevilla", "Zaragoza", "Oviedo", "Cantabria", "Castilla-La Mancha", "Burgos", "León", "Salamanca", "Valladolid", "Autónoma de Barcelona", "Barcelona", "Girona", "Lleida", "Politécnica de Catalunya", "Pompeu Fabra", "Rovira i Virgili", "Extremadura", "A Coruña", "Santiago de Compostela", "Vigo", "Illes Balears (Les)", "La Laguna", "Las Palmas de Gran Canaria", "La Rioja", "Alcalá", "Autónoma de Madrid", "Carlos III de Madrid", "Complutense de Madrid", "Politécnica de Madrid", "Rey Juan Carlos", "Murcia", "Politécnica de Cartagena", "Pública de Navarra", "País Vasco/Euskal Herriko Unibertsitatea", "Alicante", "Jaume I de Castellón", "Miguel Hernández de Elche", "Politècnica de València", "València (Estudi General)")
+)
+
+```
+
+```{r}
+# change the first row sexo value to helicopter --> QUITAR ESTO CUANDO TENGA EL DATASET CON RUIDO BUENO
+data_redondeo_estandar$Sexo[1] <- "Helicopter"
+print(data_redondeo_estandar)
+
+#Probar la funcion con la columna sexo
+data_rellenar_valores_atipicos <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valores_validos, "mas_probable")
+data_rellenar_valores_atipicos
+```
+
+
