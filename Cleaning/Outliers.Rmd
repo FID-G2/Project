@@ -1,0 +1,281 @@
+```{r}
+
+# Lectura del dataset
+datos <- read.csv("../Add-noise/dataset_integrado.csv", header = TRUE, stringsAsFactors = FALSE)
+
+colnames(datos) <- c("Ciudad", "Universidad", "Año", "Genero", "Nivel", "Campo", "Nota", "Carrera", "Region", "Cantidad")
+
+datos$Nota <- as.numeric(datos$Nota)
+```
+
+### Detección de outliers
+
+Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
+
+```{r}
+
+detectar_atipicos_iqr <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+  
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(columna_interes, 0.25, na.rm = TRUE)
+  Q3 <- quantile(columna_interes, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+  
+  # Identificar valores atípicos
+  indices_atipicos <- which(columna_interes > umbral_superior | columna_interes < umbral_inferior)
+  
+  valores_atipicos <- df[indices_atipicos, ]
+  
+  # Devolver el resultado
+  resultado <- list(dataframe = valores_atipicos, indices_atipicos = indices_atipicos)
+  return(resultado)
+}
+
+```
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+# Uso de la función "detectar_atipicos_iqr" con la columna "Nota media"
+atipicos_iqr <- detectar_atipicos_iqr(datos, "Nota")
+
+# Valores atípicos detectados en la columna 'Nota media'
+atipicos_iqr$dataframe
+```
+
+El **método de Z-Score** calcula cuántas desviaciones estándar un punto de datos está lejos de la media. Los puntos con un Z-Score alto o bajo en valor absoluto se consideran atípicos.
+
+```{r}
+
+detectar_atipicos_z <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+  
+  #TODO: Modificar
+  # Imputar valores nulos con la media de la columna
+  columna_interes[is.na(columna_interes)] <- mean(columna_interes, na.rm = TRUE)
+  
+  # Calcular el Z-Score
+  z_scores <- scale(columna_interes)
+  
+  # Establecer un umbral de Z-Score para identificar valores atípicos
+  umbral_z_score <- 2  # Se puede ajustar este valor según las necesidades
+  
+  # Identificar valores atípicos basados en el Z-Score
+  indices_atipicos <- which(abs(z_scores) > umbral_z_score)
+  
+  valores_atipicos <- df[indices_atipicos, ]
+  
+  # Devolver el resultado
+  resultado <- list(dataframe = valores_atipicos, indices_atipicos = indices_atipicos)
+  return(resultado)
+}
+```
+
+```{r}
+
+# Uso de la función "detectar_atipicos_z" con la columna "Nota media"
+atipicos_z <- detectar_atipicos_z(datos, "Nota")
+
+# Valores atípicos detectados en la columna 'Nota media'
+print(atipicos_z$dataframe)
+```
+
+### Tratamiento de outliers
+
+Imputación con la media de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_media_no_atipicos <- function(df, columna) {
+  
+  df_res <- df
+  
+  atipicos_iqr <- detectar_atipicos_iqr(datos, columna) # PUEDE MODIFICARSE
+
+  indices_atipicos <- atipicos_iqr$indices_atipicos
+  
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_nuevo)), indices_atipicos)
+  
+  # Calcular la media de los valores no atípicos
+  media_no_atipicos <- mean(datos[[columna]][indices_no_atipicos], na.rm = TRUE)
+  
+  # Rellenar valores atípicos con la media de los no atípicos
+  df_res[indices_atipicos, columna] <- media_no_atipicos
+  
+  return(df_res)
+}
+
+
+```
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+res <- reemplazar_outliers_con_media_no_atipicos(datos, "Nota")
+
+head(res)
+```
+
+Imputación con la mediana de los valores no atípicos
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+reemplazar_outliers_con_mediana_no_atipicos <- function(df, columna) {
+  
+  df_res <- df
+  
+  atipicos_iqr <- detectar_atipicos_iqr(datos, columna) # PUEDE MODIFICARSE
+
+  indices_atipicos <- atipicos_iqr$indices_atipicos
+  
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_nuevo)), indices_atipicos)
+  
+  # Calcular la mediana de los valores no atípicos
+  mediana_no_atipicos <- median(datos[[columna]][indices_no_atipicos], na.rm = TRUE)
+  
+  # Reemplazar valores atípicos con la mediana de los no atípicos
+  df_res[indices_atipicos, columna] <- mediana_no_atipicos
+  
+  return(df_res)
+}
+```
+
+```{r}
+
+res <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota")
+
+head(res)
+```
+
+Imputación con la mediana de los valores no atípicos
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+rellenar_outliers_con_desviacion <- function(df, columna) {
+  
+  df_res <- df
+  
+  # Detectar atípicos usando la desviación estándar (puedes modificar según tus necesidades)
+  atipicos_desviacion <- detectar_atipicos_desviacion_estandar(df_res, columna)
+  
+  # Obtener los índices de las filas atípicas
+  indices_atipicos <- atipicos_desviacion$indices_atipicos
+  
+  # Obtener los índices de las filas no atípicas
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_res)), indices_atipicos)
+  
+  # Calcular la desviación estándar de los valores no atípicos
+  desviacion_no_atipicos <- sd(df_res[[columna]][indices_no_atipicos], na.rm = TRUE)
+  
+  # Reemplazar valores atípicos con la desviación estándar de los no atípicos
+  df_res[indices_atipicos, columna] <- desviacion_no_atipicos
+  
+  return(df_res)
+}
+```
+
+```{r}
+
+res <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota")
+
+head(res)
+```
+
+Eliminación de filas con outliers
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+eliminar_filas_outliers <- function(df, columna) {
+  
+  df_res <- df
+  
+  atipicos_iqr <- detectar_atipicos_iqr(datos, columna) # PUEDE MODIFICARSE
+
+  indices_atipicos <- atipicos_iqr$indices_atipicos
+  
+  # Eliminar las filas atípicas del DataFrame resultante
+  df_res <- df_res[-indices_atipicos, , drop = FALSE]
+  
+  return(df_res)
+}
+```
+
+```{r}
+
+res <- eliminar_filas_outliers(datos, "Nota")
+
+head(res)
+```
+
+Imputación con valor específico
+
+```{r}
+
+datos$Nota[1] <- 1000
+
+head(datos)
+```
+
+```{r}
+
+reemplazar_outliers_con_valor <- function(df, columna, valor_reemplazo) {
+  
+  df_res <- df
+  
+  atipicos_iqr <- detectar_atipicos_iqr(datos, columna) # PUEDE MODIFICARSE
+
+  indices_atipicos <- atipicos_iqr$indices_atipicos
+  
+  # Reemplazar los valores atípicos con el valor especificado
+  df_res[indices_atipicos, columna] <- valor_reemplazo
+  
+  return(df_res)
+}
+```
+
+```{r}
+
+res <- reemplazar_outliers_con_valor(datos, "Nota", 20)
+
+head(res)
+```
