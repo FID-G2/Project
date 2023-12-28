@@ -136,18 +136,16 @@ data_clean <- data_clean[complete.cases(data_clean), ]
 write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
 ```
 
-## Tratamiento de valores nulos en la columna 'Numero de estudiantes' mediante otra alternativa
+## Tratamiento de valores nulos 'mediante otra alternativa
 
-### 
+### La columna debe ser numérica
 ```{r}
 clean_null_students <- function(datos, tratamiento) {
   # Identificar valores nulos en la columna "Número.de.estudiantes"
   valores_nulos_estudiantes <- sum(is.na(datos$Número.de.estudiantes))
-
   if (valores_nulos_estudiantes > 0) {
     # Seleccionar los valores no nulos para calcular desviación típica
     valores_no_nulos <- datos$Número.de.estudiantes[!is.na(datos$Número.de.estudiantes)]
-
     # Tratar valores nulos según el parámetro proporcionado
     if (tratamiento == 1) {
       #Media
@@ -167,22 +165,31 @@ clean_null_students <- function(datos, tratamiento) {
     } else {
       stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
     }
-
     # Exportar los datos a un nuevo archivo CSV
     write.csv(datos, file = nombre_archivo, row.names = FALSE)
     cat("Datos tratados y exportados a", nombre_archivo, "\n")
   } else {
     cat("No hay valores nulos en la columna 'Número.de.estudiantes'. No se requiere tratamiento.\n")
   }
-
   # Devolver los datos tratados
   return(datos)
 }
-
 ```
 
 ## Llamada a esa función
 ```{r}
-data_clean <- clean_null_students(data, 2)
+data_clean <- clean_null_students(data_clean, 2)
 ```
+
+```{r}	
+#Comprobar en nota media si hay valores nulos
+valores_nulos_nota_media <- sum(is.na(data_clean$Nota.media))
+if (valores_nulos_nota_media > 0) {
+  cat("Hay", valores_nulos_nota_media, "valores nulos en la columna 'Nota.media'.\n")
+} else {
+  cat("No hay valores nulos en la columna 'Nota.media'.\n")
+}
+```
+
+
 
