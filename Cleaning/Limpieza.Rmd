@@ -9,8 +9,8 @@ library(tidyr)
 ## Leemos el dataset
 
 ```{r}
-data = read.csv('../Add-noise/dataset_ruido.csv')
-print(data)
+data = read.csv('./Add-noise/dataset_ruido.csv')
+# print(data)
 ```
 
 ## Comprobamos los valores de los datos
@@ -127,7 +127,7 @@ valores_validos <- list(
 
 #Probar la funcion con la columna sexo
 data_clean <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valores_validos, "mas_probable")
-data_clean
+# data_clean
 ```
 ```{r}
 #eliminate na rows
@@ -136,4 +136,53 @@ data_clean <- data_clean[complete.cases(data_clean), ]
 write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
 ```
 
+## Tratamiento de valores nulos en la columna 'Numero de estudiantes' mediante otra alternativa
+
+### 
+```{r}
+clean_null_students <- function(datos, tratamiento) {
+  # Identificar valores nulos en la columna "Número.de.estudiantes"
+  valores_nulos_estudiantes <- sum(is.na(datos$Número.de.estudiantes))
+
+  if (valores_nulos_estudiantes > 0) {
+    # Seleccionar los valores no nulos para calcular desviación típica
+    valores_no_nulos <- datos$Número.de.estudiantes[!is.na(datos$Número.de.estudiantes)]
+
+    # Tratar valores nulos según el parámetro proporcionado
+    if (tratamiento == 1) {
+      #Media
+      media_relleno <- mean(datos$Número.de.estudiantes, na.rm = TRUE)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), media_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_media.csv"
+    } else if (tratamiento == 0) {
+      #Mediana
+      mediana_relleno <- median(datos$Número.de.estudiantes, na.rm = TRUE)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), mediana_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
+    } else if (tratamiento == 2) {
+      #Desviación típica
+      desviacion_tipica_relleno <- sd(valores_no_nulos)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), desviacion_tipica_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
+    } else {
+      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
+    }
+
+    # Exportar los datos a un nuevo archivo CSV
+    write.csv(datos, file = nombre_archivo, row.names = FALSE)
+    cat("Datos tratados y exportados a", nombre_archivo, "\n")
+  } else {
+    cat("No hay valores nulos en la columna 'Número.de.estudiantes'. No se requiere tratamiento.\n")
+  }
+
+  # Devolver los datos tratados
+  return(datos)
+}
+
+```
+
+## Llamada a esa función
+```{r}
+data_clean <- clean_null_students(data, 2)
+```
 
