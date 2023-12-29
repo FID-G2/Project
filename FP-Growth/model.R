@@ -109,32 +109,111 @@ imputar_recursivo <- function(datos, columnas_grupo, columna_imputar) {
 preprocesamiento <- imputar_recursivo(preprocesamiento, c("Universidad", "Curso", "Forma.de.admisión", "Rama.de.enseñanza","Ámbito.de.estudio"), "Nota.media")
 
 #####################################################################
+# Crear un dataframe de ejemplo
+df <- data.frame(
+  "Comunidad.Autónoma" = c("Cataluña", "Madrid", "Cataluña", "Andalucía", "Galicia", "Valencia"),
+  "Universidad" = c("UPC", "UAM", "UPC", "US", "UVigo", "UPV"),
+  "Curso" = c("2021-2022", "2021-2022", "2020-2021", "2020-2021", "2021-2022", "2021-2022"),
+  "Sexo" = c("Hombre", "Mujer", "Hombre", "Mujer", "Hombre", "Mujer"),
+  "Forma.de.admisión" = c("PAU", "FP", "PAU", "FP", "PAU", "FP"),
+  "Rama.de.enseñanza" = c("Ingeniería", "Ciencias", "Ingeniería", "Ciencias", "Ingeniería", "Ciencias"),
+  "Nota.media" = c(8.5, 9.2, 7.8, 8.9, 8.0, 9.5),
+  "Ámbito.de.estudio" = c("Tecnología", "Ciencias", "Tecnología", "Ciencias", "Tecnología", "Ciencias"),
+  "Zona.de.nacionalidad" = c("España", "Extranjero", "España", "Extranjero", "España", "Extranjero"),
+  "Número.de.estudiantes" = c(1500, 2000, 1200, 1800, 800, 1200)
+)
+# Seleccionar las columnas relevantes para las transacciones
+transactions <- df[, c("Comunidad.Autónoma", "Universidad", "Curso", "Sexo", "Forma.de.admisión", "Rama.de.enseñanza", "Nota.media", "Ámbito.de.estudio", "Zona.de.nacionalidad", "Número.de.estudiantes")]
 
-####################SELECCIÓN DE DATOS RELEVANTES####################
+# Crear una lista de transacciones
+transaction_list <- apply(transactions, 1, function(x) as.character(na.omit(x)))
 
-# install.packages("fpgrowth")
-library(arules)
-library(data.table)
-# Ver los primeros registros de tu conjunto de datos
-head(preprocesamiento)
+# Función para construir el árbol FP con impresiones de depuración
+build_fp_tree_debug_insensitive_corrected_v7 <- function(transactions) {
+  
+  root <- list(name = "root", count = 0, children = list())
+  current_node <- root
+  
+  for (i in 1:length(transactions)) {
+    transaction <- transactions[[i]]
+    
+    cat("Transacción:", i, "\n")
+    
+    for (item in transaction) {
+      cat("El item es:", item, "\n")
+      cat("El current_node es:", current_node$name, "\n")
+      
+      child_node <- NULL
+      found_child <- FALSE
+      
+      # Buscar el nodo existente con el mismo nombre (insensible a mayúsculas/minúsculas)
+      for (j in seq_along(current_node$children)) {
+        child <- current_node$children[[j]]
+        cat("Comienza el bucle")
+        cat("Comparando:", tolower(child$name), "con", tolower(item), "\n")
+        if (tolower(child$name) == tolower(item)) {
+          child_node <- child
+          found_child <- TRUE
+          break
+        }
+      }
+      cat("Lo has encontrado:", found_child, "\n")
+      if (!found_child) {
+        # Si no existe, crear uno nuevo y agregarlo a la lista de hijos
+        new_node <- list(name = item, count = 1, parent = current_node, children = list())
+        cat("Nuevo nodo:", new_node$name, "\n")
+        node_nuevo = list(new_node)
+        root$children <- c(root$children, list(new_node))
+        # Ahora, establecer el nuevo nodo como el nodo actual
+        current_node <- new_node
+      } else {
+        # Si existe, simplemente incrementar el contador
+        cat("Nodo existente. Incrementando contador de", child_node$name, "\n")
+        child_node$count <- child_node$count + 1
+        # Y establecer el nodo existente como el nodo actual
+        current_node <- child_node
+      }
+    }
+    root$count <- root$count + 1
+    cat("\n--- Fin de la transacción ---\n\n")
+  }
+  
+  return(root)
+}
 
-# Convierte el conjunto de datos a data.table
-dt <- as.data.table(preprocesamiento)
-
-# Convierte la columna "Nota.media" a tipo numérico y agrupa
-transacciones <- dt[, .(Media_Nota = mean(as.numeric(Nota.media), na.rm = TRUE)), 
-                    by = .(Comunidad.Autónoma, Universidad, Curso, Sexo, 
-                           Forma.de.admisión, Rama.de.enseñanza, Ámbito.de.estudio, Zona.de.nacionalidad)]
-
-# Convierte la columna "Media_Nota" a un formato adecuado para el algoritmo arules
-transacciones <- as(transacciones$Media_Nota, "transactions")
-
-# Aplica el algoritmo FP-Growth
-reglas_fp <- arules::fpgrowth(transacciones, support = 0.1, confidence = 0.5)
-
-# Muestra las reglas generadas
-inspect(reglas_fp)
+# Construir el árbol FP con impresiones de depuración
+fp_tree_debug_insensitive_corrected_v7 <- build_fp_tree_debug_insensitive_corrected_v7(transaction_list)
 
 
 
 
+# Función para extraer patrones de árbol FP
+mine_patterns <- function(fp_tree, min_support) {
+  patterns <- list()
+  
+  for (i in length(fp_tree$children):1) {
+    child <- fp_tree$children[[i]]
+    
+    if (child$count >= min_support) {
+      pattern <- list(items = character(), count = child$count)
+      
+      while (!is.null(child$parent)) {
+        pattern$items <- c(pattern$items, child$name)
+        child <- child$parent
+      }
+      
+      patterns <- c(patterns, list(pattern))
+    }
+  }
+  
+  return(patterns)
+}
+
+# Extraer patrones con un soporte mínimo del 1%
+min_support <- length(transaction_list) * 0.01
+patterns <- mine_patterns(fp_tree_debug_insensitive_corrected_v7, min_support)
+
+# Mostrar patrones
+for (pattern in patterns) {
+  cat("Items:", paste(pattern$items, collapse = ", "), "Count:", pattern$count, "\n")
+}
