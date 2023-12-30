@@ -1,12 +1,7 @@
 ```{r}
 library(dplyr)
-```
-
-## Leemos el dataset
-
-```{r}
-data = read.csv('../data/CleanData/dataClean.csv')
-print(data)
+library(magrittr)
+library(caret)
 ```
 
 ```{r}
@@ -25,31 +20,149 @@ crear_interaccion <- function(data, columnas, nombre_interaccion, mantener_colum
 
 ```
 
+## Codificación One-Hot Encode
+
 ```{r}
-data_transf <- data %>%
+
+# Función para realizar One-Hot Encoding
+one_hot_encode <- function(data, variable) {
+  # Obtener la matriz codificada
+  encoded_matrix <- model.matrix(~ . - 1, data = data[, variable, drop = FALSE])
+
+  # Convertir la matriz a un data frame
+  encoded_df <- as.data.frame(encoded_matrix)
+
+  # Obtener los nombres de las nuevas columnas
+  # new_column_names <- colnames(encoded_df) # ¿BORRAR?
+
+  # Eliminar la columna original
+  data <- data[, !grepl(variable, colnames(data))] 
+
+  # Agregar las nuevas columnas al conjunto de datos original
+  data <- cbind(data, encoded_df[, -1, drop = FALSE])
+
+  # Devolver el conjunto de datos modificado
+  return(data)
+}
+```
+
+## Variables binarias
+
+```{r}
+
+# Función para realizar la codificación binaria
+binary_encode <- function(data, variable, category1, category2) {
+  # Crear una nueva columna con la codificación binaria
+  data[[variable]] <- ifelse(data[[variable]] == category1, 0, 1)
+
+  # Devolver el conjunto de datos modificado
+  return(data)
+}
+```
+
+```{r}
+datos = read.csv('./data/CleanData/datos_tratados.csv')
+```
+
+```{r}
+datos_transf <- datos %>%
   group_by(Rama.de.enseñanza, Ámbito.de.estudio) %>%
   mutate(Nota.media = mean(Nota.media) + rnorm(n(), mean = 0, sd = 2)) %>%
   ungroup()
-
-data_transf
 ```
 ## Nueva columnas, interacciones entre diferentes variables
 
 ```{r}
-data_transf <- crear_interaccion(data_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
+datos_transf <- crear_interaccion(datos_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
 
-data_transf <- crear_interaccion(data_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Rama_Ambito_Sexo, TRUE)
-
-data_transf
+datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Rama_Ambito_Sexo, TRUE)
 ```
 ## Columna diferencia entre nota media y nota media por comunidad
 
 ```{r}
-data_transf <- data_transf %>%
+datos_transf <- datos_transf %>%
   group_by(`Comunidad.Autónoma`) %>%
   mutate(Diferencia_Nota_Media = Nota.media - mean(Nota.media)) %>%
   ungroup()
 
-data_transf
+datos_transf
 ```
 
+## 2. Normalización
+
+```{r}
+# Seleccionar las columnas numéricas para normalizar
+columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")]
+```
+
+## Normalizamos las columnas numéricas
+```{r}
+datos_normalizados <- scale(columnas_numericas)
+```
+
+## Agregamos los datos normalizados al conjunto de datos original
+
+```{r}
+datos_transf[,  c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")] <- datos_normalizados
+```
+
+## 2. Escalado
+
+```{r}
+# Escalar los datos al rango 0-1
+escalador <- preProcess(columnas_numericas, method = c("range"))
+datos_escalados <- predict(escalador, newdata = columnas_numericas)
+
+# Agregar los datos escalados al conjunto de datos original
+datos_transf[, c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")] <- datos_escalados
+```
+
+## One-Hot sobre el dataset
+
+```{r}
+
+# Uso de la función para codificar "Ciudad"
+df_ciudad_encoded <- one_hot_encode(datos_transf, "Comunidad.Autónoma")
+```
+
+```{r}
+# Uso de la función para codificar "Universidad"
+df_universidad_encoded <- one_hot_encode(df_ciudad_encoded, "Universidad")
+```
+```{r}
+
+# Uso de la función para codificar "Campo"
+df_campo_encoded <- one_hot_encode(df_universidad_encoded, "Rama.de.enseñanza")
+```
+
+```{r}
+# Uso de la función para codificar "Carrera"
+df_carrera_encoded <- one_hot_encode(df_campo_encoded, "Ámbito.de.estudio")
+```
+
+## Codificación binaria sobre el dataset
+
+```{r}
+# Uso de la función para codificar "Genero"
+df_genero <- binary_encode(df_carrera_encoded, "Sexo", "Hombres", "Mujeres")
+```
+
+```{r}
+
+# Uso de la función para codificar "Forma de admisión"
+df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
+```
+
+## Exportación a CSV
+
+```{r}
+# Especifica el nombre del archivo CSV para los datos normalizados
+nombre_archivo <- "./data/CleanData/datos_transformados.csv"
+
+# Guarda los datos normalizados en un nuevo archivo CSV
+write.csv(df_nivel, file = nombre_archivo, row.names = FALSE)
+
+# Imprime un mensaje de confirmación
+cat("Datos normalizados exportados a", nombre_archivo, "\n")
+
+```

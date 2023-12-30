@@ -36,7 +36,7 @@ one_hot_encode <- function(data, variable) {
 }
 ```
 
-### Ejemplos sobre el dataset
+## One-Hot sobre el dataset
 
 ```{r}
 
@@ -87,7 +87,7 @@ df_genero <- binary_encode(datos, "Genero", "Hombres", "Mujeres")
 head(df_genero)
 ```
 
-### Ejemplos sobre el dataset
+## Codificación binaria sobre el dataset
 
 ```{r}
 

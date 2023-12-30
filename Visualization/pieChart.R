@@ -1,4 +1,3 @@
-
 library(ggplot2)
 
 # Cargar el archivo CSV original
