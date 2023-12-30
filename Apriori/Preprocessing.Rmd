@@ -39,7 +39,7 @@ plot_limpio <- ggplot(agg_dataset_limpio, aes(x = Rama.de.enseñanza, y = Númer
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
-  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink")) +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
   theme_minimal()
 
 plot_ruido_20_sin_na <- ggplot(agg_dataset_ruido_20_sin_na, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
@@ -47,7 +47,7 @@ plot_ruido_20_sin_na <- ggplot(agg_dataset_ruido_20_sin_na, aes(x = Rama.de.ense
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
-  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow"), "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
   theme_minimal()
 
 plot_ruido_20_media_numero <- ggplot(agg_dataset_ruido_20_media_numero, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
@@ -55,7 +55,7 @@ plot_ruido_20_media_numero <- ggplot(agg_dataset_ruido_20_media_numero, aes(x = 
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
-  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow"), "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
   theme_minimal()
 
 print(plot_limpio)
@@ -207,6 +207,7 @@ plot_limpio <- ggplot(vis_seleccion_dataset_limpio, aes(x = Rama.de.enseñanza, 
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
   theme_minimal()
 
 plot_ruido_filtro <- ggplot(vis_filtro_seleccion_dataset_ruido_20, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
@@ -214,6 +215,7 @@ plot_ruido_filtro <- ggplot(vis_filtro_seleccion_dataset_ruido_20, aes(x = Rama.
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
   theme_minimal()
 
 plot_ruido_modificado <- ggplot(vis_modificado_seleccion_dataset_ruido_20, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
@@ -221,6 +223,7 @@ plot_ruido_modificado <- ggplot(vis_modificado_seleccion_dataset_ruido_20, aes(x
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
   theme_minimal()
 
 print(plot_limpio)

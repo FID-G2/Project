@@ -1,0 +1,99 @@
+```{r}
+install.packages("arules")
+library(arules)
+
+install.packages("arulesViz")
+library(arulesViz)
+```
+
+Abrimos los datasets
+```{r}
+setwd("C:/Users/User/Documents/Tareas/FID/Project/Apriori")
+# Read the CSV file into a data frame
+dataset_limpio <- read.csv("dataset_limpio.csv")
+dataset_filtrado <- read.csv("dataset_filtrado.csv")
+dataset_modificado <- read.csv("dataset_modificado.csv")
+```
+
+Replicamos las filas por cada estudiante, para que cada fila represente a un estudiante. Dividimos el número de estudiantes por 1000 para que no tengamos un dataset demasiado grande mientras mantenemos la proporcionalidad del tamaño de cada rama de enseñanza por sexo
+```{r}
+replicated_dataset_limpio <- list()
+
+for (i in 1:nrow(dataset_limpio)) {
+  replicated_pair <- replicate(round(dataset_limpio$Número.de.estudiantes[i]/1000), dataset_limpio[i, 1:2], simplify = FALSE)
+  replicated_dataset_limpio <- c(replicated_dataset_limpio, replicated_pair)
+}
+
+replicated_dataset_limpio <- do.call(rbind, replicated_dataset_limpio)
+replicated_dataset_limpio <- as.data.frame(replicated_dataset_limpio)
+
+
+replicated_dataset_filtrado <- list()
+
+for (i in 1:nrow(dataset_filtrado)) {
+  replicated_pair <- replicate(round(dataset_filtrado$Número.de.estudiantes[i]/1000), dataset_filtrado[i, 1:2], simplify = FALSE)
+  replicated_dataset_filtrado <- c(replicated_dataset_filtrado, replicated_pair)
+}
+
+replicated_dataset_filtrado <- do.call(rbind, replicated_dataset_filtrado)
+replicated_dataset_filtrado <- as.data.frame(replicated_dataset_filtrado)
+
+
+replicated_dataset_modificado <- list()
+
+for (i in 1:nrow(dataset_modificado)) {
+  replicated_pair <- replicate(round(dataset_modificado$Número.de.estudiantes[i]/1000), dataset_modificado[i, 1:2], simplify = FALSE)
+  replicated_dataset_modificado <- c(replicated_dataset_modificado, replicated_pair)
+}
+
+replicated_dataset_modificado <- do.call(rbind, replicated_dataset_modificado)
+replicated_dataset_modificado <- as.data.frame(replicated_dataset_modificado)
+
+```
+
+Convertimos a formato de transacciones
+```{r}
+replicated_dataset_limpio$Sexo <- as.factor(replicated_dataset_limpio$Sexo)
+replicated_dataset_limpio$Rama.de.enseñanza <- as.factor(replicated_dataset_limpio$Rama.de.enseñanza)
+replicated_dataset_filtrado$Sexo <- as.factor(replicated_dataset_filtrado$Sexo)
+replicated_dataset_filtrado$Rama.de.enseñanza <- as.factor(replicated_dataset_filtrado$Rama.de.enseñanza)
+replicated_dataset_modificado$Sexo <- as.factor(replicated_dataset_modificado$Sexo)
+replicated_dataset_modificado$Rama.de.enseñanza <- as.factor(replicated_dataset_modificado$Rama.de.enseñanza)
+
+transactions_limpio <- as(replicated_dataset_limpio[, c("Sexo", "Rama.de.enseñanza")], "transactions")
+transactions_filtrado <- as(replicated_dataset_filtrado[, c("Sexo", "Rama.de.enseñanza")], "transactions")
+transactions_modificado <- as(replicated_dataset_modificado[, c("Sexo", "Rama.de.enseñanza")], "transactions")
+```
+
+Ajustamos los parámetros para el algoritmo Apriori
+```{r}
+rules_limpio <- apriori(
+  transactions_limpio,
+  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
+)
+rules_filtrado <- apriori(
+  transactions_filtrado,
+  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
+)
+rules_modificado <- apriori(
+  transactions_modificado,
+  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
+)
+
+inspect(rules_limpio)
+inspect(rules_filtrado)
+inspect(rules_modificado)
+```
+
+Mostramos gráficamente las reglas de nuestro experimento
+```{r}
+# plot(rules_limpio, method = "graph", main = "Dataset limpio")
+# plot(rules_limpio, method = "grouped", main = "Dataset limpio")
+# plot(rules_limpio, method = "matrix", main = "Dataset limpio")
+# plot(rules_limpio, method = "scatterplot", main = "Dataset limpio")
+plot(rules_limpio, method = "paracoord", main = "Dataset limpio")
+plot(rules_filtrado, method = "paracoord", main = "Dataset filtrado")
+plot(rules_modificado, method = "paracoord", main = "Dataset modificado")
+```
+
+Viendo la dirección de las flechas, concluimos que hay una relación entre las ramas de enseñanza de ciencias e ingeniería y arquitectura hacia los hombres, mientras que existe una mayor relación entre las mujeres y las carreras de ciencias de la salud, artes y humanidades y ciencias sociales y jurídicas. El ruido del sexo desconocido no ha supuesto un problema para esta conclusión, ya que ninguna rama del conocimiento se relaciona con este sexo.
