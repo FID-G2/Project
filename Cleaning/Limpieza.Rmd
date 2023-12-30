@@ -4,19 +4,304 @@ library(dplyr)
 library(tidyr)
 ```
 
-# Lectura y comprobacion
+## OUTLIERS
 
-## Leemos el dataset
+### Detección de outliers
+
+Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
 
 ```{r}
-data = read.csv('./Add-noise/dataset_ruido.csv')
-# print(data)
+
+detectar_atipicos_iqr <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+
+  # Calcular el rango intercuartílico (IQR)
+  Q1 <- quantile(columna_interes, 0.25, na.rm = TRUE)
+  Q3 <- quantile(columna_interes, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+
+  # Definir los umbrales para identificar valores atípicos
+  umbral_superior <- Q3 + 1.5 * IQR
+  umbral_inferior <- Q1 - 1.5 * IQR
+
+  # Identificar valores atípicos
+  indices_atipicos <- which(columna_interes > umbral_superior | columna_interes < umbral_inferior)
+
+  valores_atipicos <- df[indices_atipicos, ]
+
+  # Devolver el resultado
+  resultado <- list(dataframe = valores_atipicos, indices_atipicos = indices_atipicos)
+  return(resultado)
+}
+
 ```
 
-## Comprobamos los valores de los datos
+```{r}
+
+# Uso de la función "detectar_atipicos_iqr" con la columna "Nota media"
+atipicos_iqr <- detectar_atipicos_iqr(datos, "Nota")
+
+# Valores atípicos detectados en la columna 'Nota media'
+atipicos_iqr$dataframe
+```
+
+El **método de Z-Score** calcula cuántas desviaciones estándar un punto de datos está lejos de la media. Los puntos con un Z-Score alto o bajo en valor absoluto se consideran atípicos.
 
 ```{r}
-summary(data)
+
+detectar_atipicos_z <- function(df, columna) {
+  # Seleccionar la columna de interés
+  columna_interes <- df[[columna]]
+
+  # Imputar valores nulos con la media de la columna
+  columna_interes[is.na(columna_interes)] <- mean(columna_interes, na.rm = TRUE)
+
+  # Calcular el Z-Score
+  z_scores <- scale(columna_interes)
+
+  # Establecer un umbral de Z-Score para identificar valores atípicos
+  umbral_z_score <- 2  # Se puede ajustar este valor según las necesidades
+
+  # Identificar valores atípicos basados en el Z-Score
+  indices_atipicos <- which(abs(z_scores) > umbral_z_score)
+
+  valores_atipicos <- df[indices_atipicos, ]
+
+  # Devolver el resultado
+  resultado <- list(dataframe = valores_atipicos, indices_atipicos = indices_atipicos)
+  return(resultado)
+}
+```
+
+```{r}
+
+# Uso de la función "detectar_atipicos_z" con la columna "Nota media"
+atipicos_z <- detectar_atipicos_z(datos, "Nota")
+
+# Valores atípicos detectados en la columna 'Nota media'
+print(atipicos_z$dataframe)
+```
+
+### Tratamiento de outliers
+
+Imputación con la media de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_media_no_atipicos <- function(df, columna, tratamiento = "iqr") {
+
+  df_res <- df
+
+  if (tratamiento == "iqr") {
+    atipicos <- detectar_atipicos_iqr(datos, columna)
+  } else if (tratamiento == "z") {
+    atipicos <- detectar_atipicos_z(datos, columna)
+  }
+
+  indices_atipicos <- atipicos$indices_atipicos
+
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_res)), indices_atipicos)
+
+  # Calcular la media de los valores no atípicos
+  media_no_atipicos <- mean(datos[[columna]][indices_no_atipicos], na.rm = TRUE)
+
+  # Rellenar valores atípicos con la media de los no atípicos
+  df_res[indices_atipicos, columna] <- media_no_atipicos
+
+  return(df_res)
+}
+
+
+```
+
+Imputación con la mediana de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_mediana_no_atipicos <- function(df, columna, tratamiento = "iqr") {
+
+  df_res <- df
+
+  if (tratamiento == "iqr") {
+    atipicos <- detectar_atipicos_iqr(datos, columna)
+  } else if (tratamiento == "z") {
+    atipicos <- detectar_atipicos_z(datos, columna)
+  }
+
+  indices_atipicos <- atipicos$indices_atipicos
+
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_res)), indices_atipicos)
+
+  # Calcular la mediana de los valores no atípicos
+  mediana_no_atipicos <- median(datos[[columna]][indices_no_atipicos], na.rm = TRUE)
+
+  # Reemplazar valores atípicos con la mediana de los no atípicos
+  df_res[indices_atipicos, columna] <- mediana_no_atipicos
+
+  return(df_res)
+}
+```
+
+Imputación con la mediana de los valores no atípicos
+
+```{r}
+
+reemplazar_outliers_con_desviacion <- function(df, columna, tratamiento = "iqr") {
+
+  df_res <- df
+
+  if (tratamiento == "iqr") {
+    atipicos <- detectar_atipicos_iqr(datos, columna)
+  } else if (tratamiento == "z") {
+    atipicos <- detectar_atipicos_z(datos, columna)
+  }
+
+  # Obtener los índices de las filas atípicas
+  indices_atipicos <- atipicos$indices_atipicos
+
+  # Obtener los índices de las filas no atípicas
+  indices_no_atipicos <- setdiff(seq_len(nrow(df_res)), indices_atipicos)
+
+  # Calcular la desviación estándar de los valores no atípicos
+  desviacion_no_atipicos <- sd(df_res[[columna]][indices_no_atipicos], na.rm = TRUE)
+
+  # Reemplazar valores atípicos con la desviación estándar de los no atípicos
+  df_res[indices_atipicos, columna] <- desviacion_no_atipicos
+
+  return(df_res)
+}
+```
+
+
+
+Eliminación de filas con outliers
+
+```{r}
+
+eliminar_filas_outliers <- function(df, columna, tratamiento = "iqr") {
+
+  df_res <- df
+
+  if (tratamiento == "iqr") {
+    atipicos <- detectar_atipicos_iqr(datos, columna)
+  } else if (tratamiento == "z") {
+    atipicos <- detectar_atipicos_z(datos, columna)
+  }
+
+  indices_atipicos <- atipicos$indices_atipicos
+
+  # Eliminar las filas atípicas del DataFrame resultante
+  df_res <- df_res[-indices_atipicos, , drop = FALSE]
+
+  return(df_res)
+}
+```
+
+Imputación con valor específico
+
+```{r}
+
+reemplazar_outliers_con_valor <- function(df, columna, valor_reemplazo, tratamiento = "iqr") {
+  
+  df_res <- df
+  
+  if (tratamiento == "iqr") {
+    atipicos <- detectar_atipicos_iqr(datos, columna)
+  } else if (tratamiento == "z") {
+    atipicos <- detectar_atipicos_z(datos, columna)
+  }
+
+  indices_atipicos <- atipicos$indices_atipicos
+  
+  # Reemplazar los valores atípicos con el valor especificado
+  df_res[indices_atipicos, columna] <- valor_reemplazo
+  
+  return(df_res)
+}
+```
+
+## TRATAMIENTO DE VALORES NULOS
+
+## Tratamiento de valores nulos 'mediante otra alternativa
+
+### La columna debe ser numérica
+```{r}
+clean_null_students <- function(datos, tratamiento) {
+  # Identificar valores nulos en la columna "Número.de.estudiantes"
+  valores_nulos_estudiantes <- sum(is.na(datos$Número.de.estudiantes))
+  if (valores_nulos_estudiantes > 0) {
+    # Seleccionar los valores no nulos para calcular desviación típica
+    valores_no_nulos <- datos$Número.de.estudiantes[!is.na(datos$Número.de.estudiantes)]
+    # Tratar valores nulos según el parámetro proporcionado
+    if (tratamiento == 1) {
+      #Media
+      media_relleno <- mean(datos$Número.de.estudiantes, na.rm = TRUE)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), media_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_media.csv"
+    } else if (tratamiento == 0) {
+      #Mediana
+      mediana_relleno <- median(datos$Número.de.estudiantes, na.rm = TRUE)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), mediana_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
+    } else if (tratamiento == 2) {
+      #Desviación típica
+      desviacion_tipica_relleno <- sd(valores_no_nulos)
+      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), desviacion_tipica_relleno, datos$Número.de.estudiantes)
+      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
+    } else {
+      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
+    }
+  } else {
+    cat("No hay valores nulos en la columna 'Número.de.estudiantes'. No se requiere tratamiento.\n")
+  }
+  # Devolver los datos tratados
+  return(datos)
+}
+```
+```{r}	
+#Comprobar en nota media si hay valores nulos
+valores_nulos_nota_media <- sum(is.na(data_clean$Nota.media))
+if (valores_nulos_nota_media > 0) {
+  cat("Hay", valores_nulos_nota_media, "valores nulos en la columna 'Nota.media'.\n")
+} else {
+  cat("No hay valores nulos en la columna 'Nota.media'.\n")
+}
+```
+
+## Limpieza en la columna 'Nota.media'
+```{r}
+clean_null_grade_average <- function(datos, tratamiento) {
+  # Identificar valores nulos en la columna "Nota.media"
+  valores_nulos_estudiantes <- sum(is.na(datos$Nota.media))
+  if (valores_nulos_estudiantes > 0) {
+    # Seleccionar los valores no nulos para calcular desviación típica
+    valores_no_nulos <- datos$Nota.media[!is.na(datos$Nota.media)]
+    # Tratar valores nulos según el parámetro proporcionado
+    if (tratamiento == 1) {
+      #Media
+      media_relleno <- mean(datos$Nota.media, na.rm = TRUE)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), media_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_media.csv"
+    } else if (tratamiento == 0) {
+      #Mediana
+      mediana_relleno <- median(datos$Nota.media, na.rm = TRUE)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), mediana_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
+    } else if (tratamiento == 2) {
+      #Desviación típica
+      desviacion_tipica_relleno <- sd(valores_no_nulos)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), desviacion_tipica_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
+    } else {
+      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
+    }
+  } else {
+    cat("No hay valores nulos en la columna 'Nota.media'. No se requiere tratamiento.\n")
+  }
+  # Devolver los datos tratados
+  return(datos)
+}
 ```
 
 ## Funciones para solucionar datos columna 'Numero de estudiantes'
@@ -55,29 +340,6 @@ rellenar_mediana <- function(df, columna) {
     return(df)
 }
 
-```
-
-```{r}
-#Como hay valores negativos, los sustituimos por el valor '0'
-data[data < 0] <- 0
-
-# Aplicamos las funciones a la columna 'Numero de estudiantes', creamos un nuevo dataset con cada funcion
-data_redondeo_estandar <- redondeo_estandar(data, "Número.de.estudiantes")
-data_redondeo_arriba <- redondeo_arriba(data, "Número.de.estudiantes")
-data_redondeo_abajo <- redondeo_abajo(data, "Número.de.estudiantes")
-data_sustituir_constante <- sustituir_constante(data, "Número.de.estudiantes")
-data_rellenar_media <- rellenar_media(data, "Número.de.estudiantes")
-data_rellenar_mediana <- rellenar_mediana(data, "Número.de.estudiantes")
-```
-
-```{r}
-# Comprobamos que los datos son correctos con summary solo de la columna 'Numero de estudiantes'
-summary(data_redondeo_estandar$Número.de.estudiantes)
-summary(data_redondeo_arriba$Número.de.estudiantes)
-summary(data_redondeo_abajo$Número.de.estudiantes)
-summary(data_sustituir_constante$Número.de.estudiantes)
-summary(data_rellenar_media$Número.de.estudiantes)
-summary(data_rellenar_mediana$Número.de.estudiantes)
 ```
 ## Funciones para solucionar datos para las columnas categóricas
 ```{r}
@@ -120,125 +382,65 @@ valores_validos <- list(
 
 ```
 
+
 ```{r}
-# change the first row sexo value to helicopter --> QUITAR ESTO CUANDO TENGA EL DATASET CON RUIDO BUENO
-#data_redondeo_estandar$Sexo[1] <- "Helicopter"
-#print(data_redondeo_estandar)
-
-#Probar la funcion con la columna sexo
-data_clean <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valores_validos, "mas_probable")
-# data_clean
+datos <- read.csv('./Add-noise/dataset_ruido.csv')
 ```
+
+## 1. Tratamiento de outliers
 ```{r}
-#eliminate na rows
-#data_clean <- data_clean[complete.cases(data_clean), ]
 
-#write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
+#Todas detectan outliers con rango intercuartilico
+df_media_iqr <- reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "iqr")
+# df_mediana_iqr <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "iqr")
+# df_desviacion_iqr <- reemplazar_outliers_con_desviacion(datos, "Nota.media", "iqr")
+# df_remplazo_iqr <- reemplazar_outliers_con_valor(datos, "Nota.media", 10, "iqr")
+# df_eliminado_iqr <- eliminar_filas_outliers(datos, "Nota.media", "iqr")
+# df_media_z <- reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "z")
+# df_desviacion_z <- reemplazar_outliers_con_desviacion(datos, "Nota.media", "z")
+# df_mediana_z <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "z")
+# df_remplazo_z <- reemplazar_outliers_con_valor(datos, "Nota.media", 10, "z")
+# df_eliminado_z <- eliminar_filas_outliers(datos, "Nota.media", "z")
 ```
 
-## Tratamiento de valores nulos 'mediante otra alternativa
-
-### La columna debe ser numérica
+## 2. Tratamiento de valores nulos
 ```{r}
-clean_null_students <- function(datos, tratamiento) {
-  # Identificar valores nulos en la columna "Número.de.estudiantes"
-  valores_nulos_estudiantes <- sum(is.na(datos$Número.de.estudiantes))
-  if (valores_nulos_estudiantes > 0) {
-    # Seleccionar los valores no nulos para calcular desviación típica
-    valores_no_nulos <- datos$Número.de.estudiantes[!is.na(datos$Número.de.estudiantes)]
-    # Tratar valores nulos según el parámetro proporcionado
-    if (tratamiento == 1) {
-      #Media
-      media_relleno <- mean(datos$Número.de.estudiantes, na.rm = TRUE)
-      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), media_relleno, datos$Número.de.estudiantes)
-      nombre_archivo <- "./data/CleanData/datos_media.csv"
-    } else if (tratamiento == 0) {
-      #Mediana
-      mediana_relleno <- median(datos$Número.de.estudiantes, na.rm = TRUE)
-      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), mediana_relleno, datos$Número.de.estudiantes)
-      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
-    } else if (tratamiento == 2) {
-      #Desviación típica
-      desviacion_tipica_relleno <- sd(valores_no_nulos)
-      datos$Número.de.estudiantes <- ifelse(is.na(datos$Número.de.estudiantes), desviacion_tipica_relleno, datos$Número.de.estudiantes)
-      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
-    } else {
-      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
-    }
-    # Exportar los datos a un nuevo archivo CSV
-    write.csv(datos, file = nombre_archivo, row.names = FALSE)
-    cat("Datos tratados y exportados a", nombre_archivo, "\n")
-  } else {
-    cat("No hay valores nulos en la columna 'Número.de.estudiantes'. No se requiere tratamiento.\n")
-  }
-  # Devolver los datos tratados
-  return(datos)
-}
+#Tratamiento de valores nulos en las columnas numero de estudiantes y nota media
+df_null_students_mediana <- clean_null_students(df_media_iqr, 0)
+# df_null_students_media <- clean_null_students(dataframe, 1)
+# df_null_students_desviacion <- clean_null_students(dataframe, 2)
+# df_null_grade_avg_mediana <- clean_null_grade_average(dataframe, 0)
+df_null_grade_avg_media <- clean_null_grade_average(df_null_students_mediana, 1)
+# df_null_grade_avg_desviacion <- clean_null_grade_average(dataframe, 2)
 ```
 
-## Llamada a esa función
+## 3. Tratamiento de valores atípicos
 ```{r}
-data_clean <- clean_null_students(data_clean, 2)
-```
+df_null_grade_avg_media[df_null_grade_avg_media < 0] <- 0
+#Tratamiento de valores atipicos en las columnas numero de estudiantes y nota media
+df_red_estandar <- redondeo_estandar(df_null_grade_avg_media, "Número.de.estudiantes")
+# df_red_arriba <- redondeo_arriba(dataframe, "Número.de.estudiantes")
+# df_red_abajo <- redondeo_abajo(dataframe, "Número.de.estudiantes")
+# df_sustituir_constante <- sustituir_constante(dataframe, "Número.de.estudiantes", 20)
+# df_rellenar_media <- rellenar_media(dataframe, "Número.de.estudiantes")
+# df_rellenar_mediana <- rellenar_mediana(dataframe, "Número.de.estudiantes")
 
-```{r}	
-#Comprobar en nota media si hay valores nulos
-valores_nulos_nota_media <- sum(is.na(data_clean$Nota.media))
-if (valores_nulos_nota_media > 0) {
-  cat("Hay", valores_nulos_nota_media, "valores nulos en la columna 'Nota.media'.\n")
-} else {
-  cat("No hay valores nulos en la columna 'Nota.media'.\n")
-}
+df_rellenar_mas_probable <- rellenar_valores_atipicos(df_red_estandar, columnas, valores_validos, "mas_probable")
+# df_rellenar_constante <- rellenar_valores_atipicos(dataframe, columnas, valores_validos, "constante", "Otro")
 ```
-
-## Limpieza en la columna 'Nota.media'
-```{r}
-clean_null_grade_average <- function(datos, tratamiento) {
-  # Identificar valores nulos en la columna "Nota.media"
-  valores_nulos_estudiantes <- sum(is.na(datos$Nota.media))
-  if (valores_nulos_estudiantes > 0) {
-    # Seleccionar los valores no nulos para calcular desviación típica
-    valores_no_nulos <- datos$Nota.media[!is.na(datos$Nota.media)]
-    # Tratar valores nulos según el parámetro proporcionado
-    if (tratamiento == 1) {
-      #Media
-      media_relleno <- mean(datos$Nota.media, na.rm = TRUE)
-      datos$Nota.media <- ifelse(is.na(datos$Nota.media), media_relleno, datos$Nota.media)
-      nombre_archivo <- "./data/CleanData/datos_media.csv"
-    } else if (tratamiento == 0) {
-      #Mediana
-      mediana_relleno <- median(datos$Nota.media, na.rm = TRUE)
-      datos$Nota.media <- ifelse(is.na(datos$Nota.media), mediana_relleno, datos$Nota.media)
-      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
-    } else if (tratamiento == 2) {
-      #Desviación típica
-      desviacion_tipica_relleno <- sd(valores_no_nulos)
-      datos$Nota.media <- ifelse(is.na(datos$Nota.media), desviacion_tipica_relleno, datos$Nota.media)
-      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
-    } else {
-      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
-    }
-    # Exportar los datos a un nuevo archivo CSV
-    write.csv(datos, file = nombre_archivo, row.names = FALSE)
-    cat("Datos tratados y exportados a", nombre_archivo, "\n")
-  } else {
-    cat("No hay valores nulos en la columna 'Nota.media'. No se requiere tratamiento.\n")
-  }
-  # Devolver los datos tratados
-  return(datos)
-}
-```
-
-## Llamada a esa función
-```{r}
-data_clean <- clean_null_grade_average(data_clean, 2)
-```
-
-## Ver el resto de columnas que tengan valores nulos
 ```{r}
 # Verificar qué columnas contienen valores nulos
-columnas_con_nulos <- colSums(is.na(data_clean)) > 0
+columnas_con_nulos <- colSums(is.na(df_rellenar_mas_probable)) > 0
 
 # Mostrar las columnas con valores nulos
 print(columnas_con_nulos)
+
+```
+
+# Exportar datos a CSV
+```{r}
+# Exportar los datos a un nuevo archivo CSV
+nombre_archivo <- "./data/CleanData/datos_tratados.csv"
+write.csv(df_rellenar_mas_probable, file = nombre_archivo, row.names = FALSE)
+cat("Datos tratados y exportados a", nombre_archivo, "\n")
 ```
