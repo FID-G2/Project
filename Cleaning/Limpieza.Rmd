@@ -38,7 +38,7 @@ redondeo_abajo <- function(df, columna) {
 
 sustituir_constante <- function(df, columna, constante = 20) {
     df[[columna]][is.na(df[[columna]])] <- constante
-    return(df)
+        return(df)
 }
 
 rellenar_media <- function(df, columna) {
@@ -131,9 +131,9 @@ data_clean <- rellenar_valores_atipicos(data_redondeo_estandar, columnas, valore
 ```
 ```{r}
 #eliminate na rows
-data_clean <- data_clean[complete.cases(data_clean), ]
+#data_clean <- data_clean[complete.cases(data_clean), ]
 
-write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
+#write.csv(data_clean, file = "../data/CleanData/dataClean.csv", row.names = FALSE)
 ```
 
 ## Tratamiento de valores nulos 'mediante otra alternativa
@@ -191,5 +191,54 @@ if (valores_nulos_nota_media > 0) {
 }
 ```
 
+## Limpieza en la columna 'Nota.media'
+```{r}
+clean_null_grade_average <- function(datos, tratamiento) {
+  # Identificar valores nulos en la columna "Nota.media"
+  valores_nulos_estudiantes <- sum(is.na(datos$Nota.media))
+  if (valores_nulos_estudiantes > 0) {
+    # Seleccionar los valores no nulos para calcular desviación típica
+    valores_no_nulos <- datos$Nota.media[!is.na(datos$Nota.media)]
+    # Tratar valores nulos según el parámetro proporcionado
+    if (tratamiento == 1) {
+      #Media
+      media_relleno <- mean(datos$Nota.media, na.rm = TRUE)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), media_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_media.csv"
+    } else if (tratamiento == 0) {
+      #Mediana
+      mediana_relleno <- median(datos$Nota.media, na.rm = TRUE)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), mediana_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_mediana.csv"
+    } else if (tratamiento == 2) {
+      #Desviación típica
+      desviacion_tipica_relleno <- sd(valores_no_nulos)
+      datos$Nota.media <- ifelse(is.na(datos$Nota.media), desviacion_tipica_relleno, datos$Nota.media)
+      nombre_archivo <- "./data/CleanData/datos_desviacion_tipica.csv"
+    } else {
+      stop("El valor del parámetro 'tratamiento' debe ser 0, 1 o 2.")
+    }
+    # Exportar los datos a un nuevo archivo CSV
+    write.csv(datos, file = nombre_archivo, row.names = FALSE)
+    cat("Datos tratados y exportados a", nombre_archivo, "\n")
+  } else {
+    cat("No hay valores nulos en la columna 'Nota.media'. No se requiere tratamiento.\n")
+  }
+  # Devolver los datos tratados
+  return(datos)
+}
+```
 
+## Llamada a esa función
+```{r}
+data_clean <- clean_null_grade_average(data_clean, 2)
+```
 
+## Ver el resto de columnas que tengan valores nulos
+```{r}
+# Verificar qué columnas contienen valores nulos
+columnas_con_nulos <- colSums(is.na(data_clean)) > 0
+
+# Mostrar las columnas con valores nulos
+print(columnas_con_nulos)
+```
