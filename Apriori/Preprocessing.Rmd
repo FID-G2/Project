@@ -17,22 +17,50 @@ Queremos construir una relación entre el sexo de los estudiantes y la rama de e
 ```{r}
 library(ggplot2)
 
-plot_limpio <- ggplot(dataset_limpio, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+agg_dataset_limpio <- dataset_limpio %>%
+  group_by(Rama.de.enseñanza, Sexo) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes))
+
+# Sabiendo que hay ruido, vamos a operar asumiendo que existen NAs en el número de estudiantes. Haremos un plot eliminando los NAs y otro haciendo una media de ellos
+agg_dataset_ruido_20_sin_na <- dataset_ruido_20 %>%
+  group_by(Rama.de.enseñanza, Sexo) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes, na.rm = TRUE))
+
+agg_dataset_ruido_20_media_numero <- dataset_ruido_20 %>%
+  group_by(Rama.de.enseñanza, Sexo) %>%
+  mutate(Número.de.estudiantes = ifelse(is.na(Número.de.estudiantes), mean(Número.de.estudiantes, na.rm = TRUE), Número.de.estudiantes)) %>%
+  ungroup()
+agg_dataset_ruido_20_media_numero <- agg_dataset_ruido_20_media_numero %>%
+  group_by(Rama.de.enseñanza, Sexo) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes, na.rm = TRUE))
+
+plot_limpio <- ggplot(agg_dataset_limpio, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink")) +
   theme_minimal()
 
-plot_ruido_20 <- ggplot(dataset_ruido_20, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+plot_ruido_20_sin_na <- ggplot(agg_dataset_ruido_20_sin_na, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Distribución de sexo dentro de una rama del conocimiento",
        x = "Rama del conocimiento",
        y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow"), "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green") +
+  theme_minimal()
+
+plot_ruido_20_media_numero <- ggplot(agg_dataset_ruido_20_media_numero, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow"), "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green") +
   theme_minimal()
 
 print(plot_limpio)
-print(plot_ruido_20)
+print(plot_ruido_20_sin_na)
+print(plot_ruido_20_media_numero)
 ```
 
 Podemos ver claramente cómo el ruido puede afectar a nuestro estudio. 
@@ -52,6 +80,7 @@ Nuestro preprocesamiento constará de los siguientes pasos:
 1.- Selección de atributos: Eliminar columnas innecesarias. Es decir, todas menos sexo, rama de enseñanza y número de estudiantes
 2.- Transformación: Discretizar el sexo, de tal forma que tenemos 0 para hombres, 1 para mujeres y 2 para todo lo demás (ruido)
 3.- Limpieza: Contar cuántas filas tenemos aún con ruido, ver lo representativo que es el ruido y determinar qué hacer con él
+4.- Transformación: Unificar todas las filas que tengan mismo sexo y rama de enseñanza
 
 Selección de atributos
 ```{r}
@@ -64,6 +93,7 @@ Transformación
 ```{r}
 library(dplyr)
 
+# Discretización del sexo
 seleccion_dataset_limpio <- seleccion_dataset_limpio %>%
   mutate(Sexo = case_when(
     Sexo == "Hombres" ~ 0,
@@ -132,6 +162,16 @@ value_counts_modified <- table(modificado_seleccion_dataset_ruido_20$Sexo)
 # Verificamos que el dataset limpio realmente está limpio
 missing_values_clean <- apply(seleccion_dataset_limpio, 2, function(x) sum(is.na(x)))
 value_counts_clean <- table(seleccion_dataset_limpio$Sexo)
+```
+
+Transformación
+```{r}
+# Unificación de filas
+seleccion_dataset_limpio <- aggregate(Número.de.estudiantes ~ Sexo + Rama.de.enseñanza, data = seleccion_dataset_limpio, sum)
+
+filtro_seleccion_dataset_ruido_20 <- aggregate(Número.de.estudiantes ~ Sexo + Rama.de.enseñanza, data = filtro_seleccion_dataset_ruido_20, sum)
+
+modificado_seleccion_dataset_ruido_20 <- aggregate(Número.de.estudiantes ~ Sexo + Rama.de.enseñanza, data = modificado_seleccion_dataset_ruido_20, sum)
 ```
 
 Volvemos a representar gráficamente nuestros datasets.
