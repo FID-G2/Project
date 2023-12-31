@@ -1,0 +1,100 @@
+```{r}
+# install.packages("randomForest")
+# install.packages("xgboost")
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(randomForest)
+library(xgboost)
+```
+
+```{r}	
+# Load data
+data <- read.csv("./data/CleanData/datos_transformados.csv")
+```
+
+
+```{r}
+#Delete Número.de.estudiantes column
+data <- data[, -which(names(data) == "Número.de.estudiantes")]
+data <- data[, -which(names(data) == "Curso")]
+```
+
+```{r}
+reduce_dimensionality <- function(data, patterns, new_names) {
+  # Verifica que las listas de patrones y nombres nuevos tengan la misma longitud
+  if (length(patterns) != length(new_names)) {
+    stop("Las listas de patrones y nombres nuevos deben tener la misma longitud")
+  }
+
+  for (i in seq_along(patterns)) {
+    # Selecciona las columnas que quieres reducir
+    columns <- grepl(patterns[i], colnames(data))
+    data_columns <- data[, columns]
+
+    # Realiza el PCA
+    pca_result <- princomp(data_columns, cor = TRUE)
+
+    # Selecciona los primeros N componentes principales
+    N <- sqrt(ncol(data_columns))
+    pca_columns <- pca_result$scores[, 1:N]
+
+    # Crea los nombres de las nuevas columnas
+    new_column_names <- paste0(new_names[i], ".PCA", 1:N)
+
+    # Reemplaza las columnas originales con los componentes principales
+    data <- data[, !columns]
+    data <- cbind(data, setNames(as.data.frame(pca_columns), new_column_names))
+  }
+
+  return(data)
+}
+```
+
+```{r}
+patterns <- c("^Comunidad", "^Universidad", "^Rama", "^Ámbito", "^Zona.de.nacionalidad")
+new_names <- c("Comunidad", "Universidad", "Rama", "Ámbito", "Zona.de.nacionalidad")
+df_res <- reduce_dimensionality(data, patterns, new_names)
+```
+
+```{r}
+df_res <- df_res %>% select(-starts_with("Universidad"))
+```
+
+```{r}
+# Redondear a 2 decimales todos los atributos numéricos
+df_res <- df_res %>% mutate_if(is.numeric, round, 2)
+```
+
+## Random Forest
+
+```{r}
+# set.seed(1234)
+
+# rf_model <- randomForest(Nota.media ~ ., data = df_res, importance = TRUE)
+
+# print(importance(rf_model))
+```
+
+## XGBoost
+
+```{r}
+# Modelo de XGBoost
+# modelo_xgb <- xgboost(data = as.matrix(data[, -ncol(data)]), label = data$Nota.media)
+
+# Visualizar la importancia de las características
+# importance_matrix <- xgb.importance(model.features = modelo_xgb$features, model = modelo_xgb)
+# xgb.plot.importance(importance_matrix = importance_matrix)
+
+```
+
+## Exportación de datos a CSV
+
+```{r}
+write.csv(df_res, "./data/CleanData/datos_seleccion_atributos.csv", row.names = FALSE)
+```
+
+

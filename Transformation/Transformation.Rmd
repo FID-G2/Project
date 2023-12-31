@@ -73,26 +73,26 @@ datos_transf <- datos %>%
 ## Nueva columnas, interacciones entre diferentes variables
 
 ```{r}
-datos_transf <- crear_interaccion(datos_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
+# datos_transf <- crear_interaccion(datos_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
 
-datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Rama_Ambito_Sexo, TRUE)
+# datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Sexo_Rama_Ambito, TRUE)
 ```
 ## Columna diferencia entre nota media y nota media por comunidad
 
 ```{r}
-datos_transf <- datos_transf %>%
-  group_by(`Comunidad.Autónoma`) %>%
-  mutate(Diferencia_Nota_Media = Nota.media - mean(Nota.media)) %>%
-  ungroup()
+#datos_transf <- datos_transf %>%
+#  group_by(`Comunidad.Autónoma`) %>%
+#  mutate(Diferencia_Nota_Media = Nota.media - mean(Nota.media)) %>%
+#  ungroup()
 
-datos_transf
+# datos_transf
 ```
 
 ## 2. Normalización
 
 ```{r}
 # Seleccionar las columnas numéricas para normalizar
-columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")]
+columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes")]
 ```
 
 ## Normalizamos las columnas numéricas
@@ -103,7 +103,7 @@ datos_normalizados <- scale(columnas_numericas)
 ## Agregamos los datos normalizados al conjunto de datos original
 
 ```{r}
-datos_transf[,  c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")] <- datos_normalizados
+datos_transf[,  c("Nota.media", "Número.de.estudiantes")] <- datos_normalizados
 ```
 
 ## 2. Escalado
@@ -114,7 +114,7 @@ escalador <- preProcess(columnas_numericas, method = c("range"))
 datos_escalados <- predict(escalador, newdata = columnas_numericas)
 
 # Agregar los datos escalados al conjunto de datos original
-datos_transf[, c("Nota.media", "Número.de.estudiantes", "Diferencia_Nota_Media")] <- datos_escalados
+datos_transf[, c("Nota.media", "Número.de.estudiantes")] <- datos_escalados
 ```
 
 ## One-Hot sobre el dataset
@@ -140,11 +140,24 @@ df_campo_encoded <- one_hot_encode(df_universidad_encoded, "Rama.de.enseñanza")
 df_carrera_encoded <- one_hot_encode(df_campo_encoded, "Ámbito.de.estudio")
 ```
 
+```{r}
+# Uso de la función para codificar "Zona de nacionalidad"
+df_zona_encoded <- one_hot_encode(df_carrera_encoded, "Zona.de.nacionalidad")
+```
+
+```{r}
+##df_rama_ambito_encoded <- one_hot_encode(df_carrera_encoded, "Interaccion_Rama_Ambito")
+```
+
+```{r}
+##df_sexo_rama_ambito_encoded <- one_hot_encode(df_rama_ambito_encoded, "Interaccion_Sexo_Rama_Ambito")
+```
+
 ## Codificación binaria sobre el dataset
 
 ```{r}
 # Uso de la función para codificar "Genero"
-df_genero <- binary_encode(df_carrera_encoded, "Sexo", "Hombres", "Mujeres")
+df_genero <- binary_encode(df_zona_encoded, "Sexo", "Hombres", "Mujeres")
 ```
 
 ```{r}

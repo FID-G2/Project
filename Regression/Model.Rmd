@@ -1,0 +1,54 @@
+```{r}
+library(randomForest)
+library(caret)
+library(e1071)
+library(kernlab)
+```
+
+```{r}
+
+df <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
+
+# Define tus variables dependientes e independientes
+x <- df[, -which(names(df) %in% 'Nota.media')]
+y <- df$Nota.media
+
+# Crea el modelo de Random Forest
+model <- randomForest(x, y, ntree=10, importance=TRUE)
+
+# Obtiene la importancia de los atributos
+importance(model)
+```
+
+```{r}
+# Gráfico de la importancia de los atributos
+varImpPlot(model)
+```
+
+```{r}
+data <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
+# Creación de modelo de reresión con Random Forest
+#Separación de datos en entrenamiento y test con cross validation
+#formula <- Sepal.Length ~ Sepal.Width + Petal.Length + Petal.Width
+
+# Define el método de control para la validación cruzada (por ejemplo, 10-fold)
+control <- trainControl(method = "cv", number = 10)
+
+# Entrena el modelo
+model <- train(Nota.media ~ ., data = data, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
+
+# Muestra el resumen del modelo
+print(model)
+```
+
+```{r}
+data <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
+control <- trainControl(method = "cv", number = 10)
+# Entrena el modelo con SVR
+model <- train(Nota.media ~ ., data = data, method = "svmRadial", trControl = control, tuneLength = 10)
+
+# Muestra el resumen del modelo
+print(model)
+```
+
+
