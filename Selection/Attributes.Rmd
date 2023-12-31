@@ -79,6 +79,11 @@ rf_model <- randomForest(Nota.media ~ ., data = df_res, ntree = 10, importance =
 print(importance(rf_model))
 ```
 
+```{r}
+# Gráfico de la importancia de los atributos
+varImpPlot(rf_model)
+```
+
 ## Exportación de datos a CSV
 
 ```{r}

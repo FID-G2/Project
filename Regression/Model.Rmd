@@ -3,52 +3,60 @@ library(randomForest)
 library(caret)
 library(e1071)
 library(kernlab)
+library(rpart)
+library(lightgbm)
 ```
 
 ```{r}
 
-df <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
-
-# Define tus variables dependientes e independientes
-x <- df[, -which(names(df) %in% 'Nota.media')]
-y <- df$Nota.media
-
-# Crea el modelo de Random Forest
-model <- randomForest(x, y, ntree=10, importance=TRUE)
-
-# Obtiene la importancia de los atributos
-importance(model)
-```
-
-```{r}
-# Gráfico de la importancia de los atributos
-varImpPlot(model)
-```
-
-```{r}
-data <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
-# Creación de modelo de reresión con Random Forest
-#Separación de datos en entrenamiento y test con cross validation
-#formula <- Sepal.Length ~ Sepal.Width + Petal.Length + Petal.Width
-
-# Define el método de control para la validación cruzada (por ejemplo, 10-fold)
+df <- read.csv("../data/CleanData/datos_seleccion_atributos.csv")
 control <- trainControl(method = "cv", number = 10)
-
-# Entrena el modelo
-model <- train(Nota.media ~ ., data = data, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
-
-# Muestra el resumen del modelo
-print(model)
 ```
+
+## Random Forest
 
 ```{r}
-data <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
-control <- trainControl(method = "cv", number = 10)
-# Entrena el modelo con SVR
-model <- train(Nota.media ~ ., data = data, method = "svmRadial", trControl = control, tuneLength = 10)
 
-# Muestra el resumen del modelo
-print(model)
+model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
+print(model_rf)
 ```
 
+## LightGBM
 
+```{r}
+
+data <- as.matrix(df[, -which(names(df) == "Nota.media")])
+label <- df$Nota.media
+
+# Crear un conjunto de datos de LightGBM
+lgb_data <- lgb.Dataset(data = data, label = label)
+
+# Especificar los parámetros del modelo
+params <- list(objective = "regression",
+               metric = "l2", #TODO: Ver como se puede modificar esto para que salgan todas las métricas
+               num_leaves = 31,
+               learning_rate = 0.05,
+               nthread = 2,
+               max_depth = 2,
+               min_data_in_leaf = 20)
+
+# Entrenar el modelo con validación cruzada
+cv_results <- lgb.cv(params,
+                     data = lgb_data,
+                     nrounds = 10,
+                     nfold = 10,
+                     verbose = 0)
+
+# Mostrar los resultados
+print(cv_results)
+```
+
+## Decision Tree
+
+```{r}
+
+model_tree <- train(Nota.media ~ ., data = df, method = "rpart", trControl = control, control = rpart.control(cp = 1))
+
+print(model_tree)
+
+```
