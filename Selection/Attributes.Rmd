@@ -8,17 +8,16 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(randomForest)
-library(xgboost)
 ```
-
-```{r}	
-# Load data
-data <- read.csv("./data/CleanData/datos_transformados.csv")
-```
-
 
 ```{r}
-#Delete Número.de.estudiantes column
+data <- read.csv("../data/CleanData/datos_transformados.csv")
+```
+
+## Eliminar columnas que no aportan información
+
+```{r}
+
 data <- data[, -which(names(data) == "Número.de.estudiantes")]
 data <- data[, -which(names(data) == "Curso")]
 ```
@@ -60,6 +59,8 @@ new_names <- c("Comunidad", "Universidad", "Rama", "Ámbito", "Zona.de.nacionali
 df_res <- reduce_dimensionality(data, patterns, new_names)
 ```
 
+## Eliminamos las columnas que tengan relación con Universidad
+
 ```{r}
 df_res <- df_res %>% select(-starts_with("Universidad"))
 ```
@@ -72,29 +73,17 @@ df_res <- df_res %>% mutate_if(is.numeric, round, 2)
 ## Random Forest
 
 ```{r}
-# set.seed(1234)
+set.seed(1234)
+rf_model <- randomForest(Nota.media ~ ., data = df_res, ntree = 10, importance = TRUE)
 
-# rf_model <- randomForest(Nota.media ~ ., data = df_res, importance = TRUE)
-
-# print(importance(rf_model))
-```
-
-## XGBoost
-
-```{r}
-# Modelo de XGBoost
-# modelo_xgb <- xgboost(data = as.matrix(data[, -ncol(data)]), label = data$Nota.media)
-
-# Visualizar la importancia de las características
-# importance_matrix <- xgb.importance(model.features = modelo_xgb$features, model = modelo_xgb)
-# xgb.plot.importance(importance_matrix = importance_matrix)
-
+print(importance(rf_model))
 ```
 
 ## Exportación de datos a CSV
 
 ```{r}
-write.csv(df_res, "./data/CleanData/datos_seleccion_atributos.csv", row.names = FALSE)
+
+nombre_archivo <- "../data/CleanData/datos_seleccion_atributos.csv"
+write.csv(df_res, nombre_archivo, row.names = FALSE)
+cat("Datos seleccionados y exportados a", nombre_archivo, "\n")
 ```
-
-
