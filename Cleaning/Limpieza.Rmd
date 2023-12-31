@@ -4,14 +4,13 @@ library(dplyr)
 library(tidyr)
 ```
 
-## OUTLIERS
+# OUTLIERS
 
-### Detección de outliers
+## Detección de outliers
 
-Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
+### Calcular el **rango intercuartílico** (**IQR**) y considerar valores que estén fuera de 1.5 veces el IQR como posibles outliers.
 
 ```{r}
-
 detectar_atipicos_iqr <- function(df, columna) {
   # Seleccionar la columna de interés
   columna_interes <- df[[columna]]
@@ -37,19 +36,9 @@ detectar_atipicos_iqr <- function(df, columna) {
 
 ```
 
-```{r}
-
-# Uso de la función "detectar_atipicos_iqr" con la columna "Nota media"
-atipicos_iqr <- detectar_atipicos_iqr(datos, "Nota")
-
-# Valores atípicos detectados en la columna 'Nota media'
-atipicos_iqr$dataframe
-```
-
-El **método de Z-Score** calcula cuántas desviaciones estándar un punto de datos está lejos de la media. Los puntos con un Z-Score alto o bajo en valor absoluto se consideran atípicos.
+### El **método de Z-Score** calcula cuántas desviaciones estándar un punto de datos está lejos de la media. Los puntos con un Z-Score alto o bajo en valor absoluto se consideran atípicos.
 
 ```{r}
-
 detectar_atipicos_z <- function(df, columna) {
   # Seleccionar la columna de interés
   columna_interes <- df[[columna]]
@@ -74,21 +63,11 @@ detectar_atipicos_z <- function(df, columna) {
 }
 ```
 
-```{r}
+## Tratamiento de outliers
 
-# Uso de la función "detectar_atipicos_z" con la columna "Nota media"
-atipicos_z <- detectar_atipicos_z(datos, "Nota")
-
-# Valores atípicos detectados en la columna 'Nota media'
-print(atipicos_z$dataframe)
-```
-
-### Tratamiento de outliers
-
-Imputación con la media de los valores no atípicos
+### Imputación con la media de los valores no atípicos
 
 ```{r}
-
 reemplazar_outliers_con_media_no_atipicos <- function(df, columna, tratamiento = "iqr") {
 
   df_res <- df
@@ -111,14 +90,11 @@ reemplazar_outliers_con_media_no_atipicos <- function(df, columna, tratamiento =
 
   return(df_res)
 }
-
-
 ```
 
-Imputación con la mediana de los valores no atípicos
+### Imputación con la mediana de los valores no atípicos
 
 ```{r}
-
 reemplazar_outliers_con_mediana_no_atipicos <- function(df, columna, tratamiento = "iqr") {
 
   df_res <- df
@@ -143,10 +119,9 @@ reemplazar_outliers_con_mediana_no_atipicos <- function(df, columna, tratamiento
 }
 ```
 
-Imputación con la mediana de los valores no atípicos
+### Imputación con la mediana de los valores no atípicos
 
 ```{r}
-
 reemplazar_outliers_con_desviacion <- function(df, columna, tratamiento = "iqr") {
 
   df_res <- df
@@ -173,9 +148,7 @@ reemplazar_outliers_con_desviacion <- function(df, columna, tratamiento = "iqr")
 }
 ```
 
-
-
-Eliminación de filas con outliers
+### Eliminación de filas con outliers
 
 ```{r}
 
@@ -198,7 +171,7 @@ eliminar_filas_outliers <- function(df, columna, tratamiento = "iqr") {
 }
 ```
 
-Imputación con valor específico
+### Imputación con valor específico
 
 ```{r}
 
@@ -223,10 +196,12 @@ reemplazar_outliers_con_valor <- function(df, columna, valor_reemplazo, tratamie
 
 ## TRATAMIENTO DE VALORES NULOS
 
-## Tratamiento de valores nulos 'mediante otra alternativa
+## Tratamiento de valores nulos mediante otra alternativa
 
 ### La columna debe ser numérica
+
 ```{r}
+
 clean_null_students <- function(datos, tratamiento) {
   # Identificar valores nulos en la columna "Número.de.estudiantes"
   valores_nulos_estudiantes <- sum(is.na(datos$Número.de.estudiantes))
@@ -259,17 +234,9 @@ clean_null_students <- function(datos, tratamiento) {
   return(datos)
 }
 ```
-```{r}	
-#Comprobar en nota media si hay valores nulos
-valores_nulos_nota_media <- sum(is.na(data_clean$Nota.media))
-if (valores_nulos_nota_media > 0) {
-  cat("Hay", valores_nulos_nota_media, "valores nulos en la columna 'Nota.media'.\n")
-} else {
-  cat("No hay valores nulos en la columna 'Nota.media'.\n")
-}
-```
 
-## Limpieza en la columna 'Nota.media'
+### **Limpieza en la columna 'Nota.media'**
+
 ```{r}
 clean_null_grade_average <- function(datos, tratamiento) {
   # Identificar valores nulos en la columna "Nota.media"
@@ -304,7 +271,8 @@ clean_null_grade_average <- function(datos, tratamiento) {
 }
 ```
 
-## Funciones para solucionar datos columna 'Numero de estudiantes'
+### Funciones para solucionar datos columna 'Numero de estudiantes'
+
 ```{r}
 redondeo_estandar <- function(df, columna) {
     df[[columna]] <- round(df[[columna]])
@@ -341,8 +309,11 @@ rellenar_mediana <- function(df, columna) {
 }
 
 ```
-## Funciones para solucionar datos para las columnas categóricas
+
+### Funciones para solucionar datos para las columnas categóricas
+
 ```{r}
+
 rellenar_valores_atipicos <- function(df, columnas, valores_validos, metodo, constante = NULL) {
   for (columna in columnas) {
     valores_validos_columna <- valores_validos[[columna]]
@@ -382,65 +353,81 @@ valores_validos <- list(
 
 ```
 
+# Llamada a las funciones
 
 ```{r}
-datos <- read.csv('./Add-noise/dataset_ruido.csv')
+datos <- read.csv('../Add-noise/dataset_ruido.csv')
 ```
 
-## 1. Tratamiento de outliers
+## 1. Función global
+
 ```{r}
 
-#Todas detectan outliers con rango intercuartilico
-df_media_iqr <- reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "iqr")
-# df_mediana_iqr <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "iqr")
-# df_desviacion_iqr <- reemplazar_outliers_con_desviacion(datos, "Nota.media", "iqr")
-# df_remplazo_iqr <- reemplazar_outliers_con_valor(datos, "Nota.media", 10, "iqr")
-# df_eliminado_iqr <- eliminar_filas_outliers(datos, "Nota.media", "iqr")
-# df_media_z <- reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "z")
-# df_desviacion_z <- reemplazar_outliers_con_desviacion(datos, "Nota.media", "z")
-# df_mediana_z <- reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "z")
-# df_remplazo_z <- reemplazar_outliers_con_valor(datos, "Nota.media", 10, "z")
-# df_eliminado_z <- eliminar_filas_outliers(datos, "Nota.media", "z")
+tratar_datos_combinado <- function(datos, modo_outliers, modo_null_students, modo_null_grade_avg, modo_outliers_grade,modo_outliers_grade_relleno, constante = Desconocido) {
+  # Tratamiento de outliers
+  df_outliers <- switch(modo_outliers,
+                        "media_iqr" = reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "iqr"),
+                        "mediana_iqr" = reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "iqr"),
+                        "desviacion_iqr" = reemplazar_outliers_con_desviacion(datos, "Nota.media", "iqr"),
+                        "remplazo_iqr" = reemplazar_outliers_con_valor(datos, "Nota.media", 10, "iqr"),
+                        "eliminado_iqr" = eliminar_filas_outliers(datos, "Nota.media", "iqr"),
+                        "media_z" = reemplazar_outliers_con_media_no_atipicos(datos, "Nota.media", "z"),
+                        "desviacion_z" = reemplazar_outliers_con_desviacion(datos, "Nota.media", "z"),
+                        "mediana_z" = reemplazar_outliers_con_mediana_no_atipicos(datos, "Nota.media", "z"),
+                        "remplazo_z" = reemplazar_outliers_con_valor(datos, "Nota.media", 10, "z"),
+                        "eliminado_z" = eliminar_filas_outliers(datos, "Nota.media", "z")
+  )
+
+  # Tratamiento de valores nulos en estudiantes
+  df_null_students <- switch(modo_null_students,
+                              "students_mediana" = clean_null_students(df_outliers, 0),
+                              "students_media" = clean_null_students(df_outliers, 1),
+                              "students_desviacion" = clean_null_students(df_outliers, 2)
+  )
+
+  # Tratamiento de valores nulos en nota media
+  df_null_grade_avg <- switch(modo_null_grade_avg,
+                               "grade_avg_mediana" = clean_null_grade_average(df_null_students, 0),
+                               "grade_avg_media" = clean_null_grade_average(df_null_students, 1),
+                               "grade_avg_desviacion" = clean_null_grade_average(df_null_students, 2)
+  )
+
+  # Tratamiento de valores atípicos en número de estudiantes
+  df_outliers_grade <- df_null_grade_avg
+  df_outliers_grade[df_outliers_grade < 0] <- 0
+
+  df_atipicos <- switch(modo_outliers_grade,
+                        "red_estandar" = redondeo_estandar(df_outliers_grade, "Número.de.estudiantes"),
+                        "red_arriba" = redondeo_arriba(df_outliers_grade, "Número.de.estudiantes"),
+                        "red_abajo" = redondeo_abajo(df_outliers_grade, "Número.de.estudiantes"),
+                        "sustituir_constante" = sustituir_constante(df_outliers_grade, "Número.de.estudiantes", 20),
+                        "rellenar_media" = rellenar_media(df_outliers_grade, "Número.de.estudiantes"),
+                        "rellenar_mediana" = rellenar_mediana(df_outliers_grade, "Número.de.estudiantes")
+  )
+
+  # Rellenar valores atípicos en el dataframe final
+  df_final <- switch(modo_outliers_grade_relleno,
+                     "rellenar_mas_probable" = rellenar_valores_atipicos(df_atipicos, columnas, valores_validos, "mas_probable"),
+                     "rellenar_constante" = rellenar_valores_atipicos(df_atipicos, columnas, valores_validos, "constante", constante)
+  )
+
+  return(df_final)
+}
+
 ```
 
-## 2. Tratamiento de valores nulos
+## Llamada a la función global según deseemos
+
 ```{r}
-#Tratamiento de valores nulos en las columnas numero de estudiantes y nota media
-df_null_students_mediana <- clean_null_students(df_media_iqr, 0)
-# df_null_students_media <- clean_null_students(dataframe, 1)
-# df_null_students_desviacion <- clean_null_students(dataframe, 2)
-# df_null_grade_avg_mediana <- clean_null_grade_average(dataframe, 0)
-df_null_grade_avg_media <- clean_null_grade_average(df_null_students_mediana, 1)
-# df_null_grade_avg_desviacion <- clean_null_grade_average(dataframe, 2)
-```
 
-## 3. Tratamiento de valores atípicos
-```{r}
-df_null_grade_avg_media[df_null_grade_avg_media < 0] <- 0
-#Tratamiento de valores atipicos en las columnas numero de estudiantes y nota media
-df_red_estandar <- redondeo_estandar(df_null_grade_avg_media, "Número.de.estudiantes")
-# df_red_arriba <- redondeo_arriba(dataframe, "Número.de.estudiantes")
-# df_red_abajo <- redondeo_abajo(dataframe, "Número.de.estudiantes")
-# df_sustituir_constante <- sustituir_constante(dataframe, "Número.de.estudiantes", 20)
-# df_rellenar_media <- rellenar_media(dataframe, "Número.de.estudiantes")
-# df_rellenar_mediana <- rellenar_mediana(dataframe, "Número.de.estudiantes")
-
-df_rellenar_mas_probable <- rellenar_valores_atipicos(df_red_estandar, columnas, valores_validos, "mas_probable")
-# df_rellenar_constante <- rellenar_valores_atipicos(dataframe, columnas, valores_validos, "constante", "Otro")
-```
-```{r}
-# Verificar qué columnas contienen valores nulos
-columnas_con_nulos <- colSums(is.na(df_rellenar_mas_probable)) > 0
-
-# Mostrar las columnas con valores nulos
-print(columnas_con_nulos)
-
+df_final <- tratar_datos_combinado(datos, "media_iqr", "students_mediana", "grade_avg_mediana", "red_estandar", "rellenar_mas_probable")
 ```
 
 # Exportar datos a CSV
+
 ```{r}
-# Exportar los datos a un nuevo archivo CSV
-nombre_archivo <- "./data/CleanData/datos_tratados.csv"
-write.csv(df_rellenar_mas_probable, file = nombre_archivo, row.names = FALSE)
+
+nombre_archivo <- "../data/CleanData/datos_tratados.csv"
+write.csv(df_final, file = nombre_archivo, row.names = FALSE)
 cat("Datos tratados y exportados a", nombre_archivo, "\n")
 ```
