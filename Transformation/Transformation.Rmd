@@ -17,14 +17,12 @@ crear_interaccion <- function(data, columnas, nombre_interaccion, mantener_colum
   
   return(data)
 }
-
 ```
 
 ## Codificación One-Hot Encode
 
 ```{r}
 
-# Función para realizar One-Hot Encoding
 one_hot_encode <- function(data, variable) {
   # Obtener la matriz codificada
   encoded_matrix <- model.matrix(~ . - 1, data = data[, variable, drop = FALSE])
@@ -50,7 +48,6 @@ one_hot_encode <- function(data, variable) {
 
 ```{r}
 
-# Función para realizar la codificación binaria
 binary_encode <- function(data, variable, category1, category2) {
   # Crear una nueva columna con la codificación binaria
   data[[variable]] <- ifelse(data[[variable]] == category1, 0, 1)
@@ -61,7 +58,7 @@ binary_encode <- function(data, variable, category1, category2) {
 ```
 
 ```{r}
-datos = read.csv('./data/CleanData/datos_tratados.csv')
+datos = read.csv('../data/CleanData/datos_tratados.csv')
 ```
 
 ```{r}
@@ -70,6 +67,7 @@ datos_transf <- datos %>%
   mutate(Nota.media = mean(Nota.media) + rnorm(n(), mean = 0, sd = 2)) %>%
   ungroup()
 ```
+
 ## Nueva columnas, interacciones entre diferentes variables
 
 ```{r}
@@ -77,6 +75,7 @@ datos_transf <- datos %>%
 
 # datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Sexo_Rama_Ambito, TRUE)
 ```
+
 ## Columna diferencia entre nota media y nota media por comunidad
 
 ```{r}
@@ -88,21 +87,26 @@ datos_transf <- datos %>%
 # datos_transf
 ```
 
-## 2. Normalización
+## Normalización
+
+#### Seleccionar las columnas numéricas para normalizar
 
 ```{r}
-# Seleccionar las columnas numéricas para normalizar
+
 columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes")]
 ```
 
 ## Normalizamos las columnas numéricas
+
 ```{r}
+
 datos_normalizados <- scale(columnas_numericas)
 ```
 
 ## Agregamos los datos normalizados al conjunto de datos original
 
 ```{r}
+
 datos_transf[,  c("Nota.media", "Número.de.estudiantes")] <- datos_normalizados
 ```
 
@@ -129,6 +133,7 @@ df_ciudad_encoded <- one_hot_encode(datos_transf, "Comunidad.Autónoma")
 # Uso de la función para codificar "Universidad"
 df_universidad_encoded <- one_hot_encode(df_ciudad_encoded, "Universidad")
 ```
+
 ```{r}
 
 # Uso de la función para codificar "Campo"
@@ -169,13 +174,9 @@ df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
 ## Exportación a CSV
 
 ```{r}
-# Especifica el nombre del archivo CSV para los datos normalizados
-nombre_archivo <- "./data/CleanData/datos_transformados.csv"
 
-# Guarda los datos normalizados en un nuevo archivo CSV
+nombre_archivo <- "../data/CleanData/datos_transformados.csv"
 write.csv(df_nivel, file = nombre_archivo, row.names = FALSE)
-
-# Imprime un mensaje de confirmación
 cat("Datos normalizados exportados a", nombre_archivo, "\n")
 
 ```
