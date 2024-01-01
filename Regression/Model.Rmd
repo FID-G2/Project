@@ -1,11 +1,24 @@
+# Modelo de regresión
+
+## Imports necesarios
+
+```{r}
+#install.packages("caret")
+#install.packages("rpart")
+#install.packages("lightgbm")
+#install.packages("randomForest")
+```
+
 ```{r}
 library(randomForest)
 library(caret)
-library(e1071)
-library(kernlab)
 library(rpart)
 library(lightgbm)
 ```
+
+## 1. Lectura de los datos
+
+Lectura de los datos obtenidos tras aplicar el proceso de selección.
 
 ```{r}
 
@@ -13,7 +26,9 @@ df <- read.csv("../data/CleanData/datos_seleccion_atributos.csv")
 control <- trainControl(method = "cv", number = 10)
 ```
 
-## Random Forest
+## 2. Modelos
+
+### 2.1. Random Forest
 
 ```{r}
 
@@ -21,7 +36,7 @@ model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control,
 print(model_rf)
 ```
 
-## LightGBM
+### 2.2. LightGBM
 
 ```{r}
 
@@ -33,7 +48,7 @@ lgb_data <- lgb.Dataset(data = data, label = label)
 
 # Especificar los parámetros del modelo
 params <- list(objective = "regression",
-               metric = "l2", #TODO: Ver como se puede modificar esto para que salgan todas las métricas
+               metric = list("rmse","mse", "mae"), #TODO: Ver como se puede modificar esto para que salgan todas las métricas
                num_leaves = 31,
                learning_rate = 0.05,
                nthread = 2,
@@ -51,7 +66,28 @@ cv_results <- lgb.cv(params,
 print(cv_results)
 ```
 
-## Decision Tree
+**RMSE**
+
+```{r}
+
+cv_results$record_evals$valid$rmse
+```
+
+**MAE**
+
+```{r}
+
+cv_results$record_evals$valid$l1
+```
+
+**MSE**
+
+```{r}
+
+cv_results$record_evals$valid$l2
+```
+
+### 2.3. Decision Tree
 
 ```{r}
 

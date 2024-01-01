@@ -1,6 +1,12 @@
+# Selección de atributos
+
+## Imports necesarios
+
 ```{r}
-# install.packages("randomForest")
-# install.packages("xgboost")
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("randomForest")
 ```
 
 ```{r}
@@ -10,67 +16,96 @@ library(tidyr)
 library(randomForest)
 ```
 
-```{r}
-data <- read.csv("../data/CleanData/datos_transformados.csv")
-```
+## 1. Funciones auxiliares
 
-## Eliminar columnas que no aportan información
+### 1.1. Reducción de la dimensionalidad generada por One-Hot encoding haciendo uso de PCA
 
-```{r}
-
-data <- data[, -which(names(data) == "Número.de.estudiantes")]
-data <- data[, -which(names(data) == "Curso")]
-```
+En esta sección, se implementa la técnica de Análisis de Componentes Principales (PCA, por sus siglas en inglés) para reducir la dimensionalidad de las variables después de aplicar One-Hot Encoding. La dimensionalidad reducida facilita el manejo eficiente de los datos, disminuyendo la complejidad y el costo computacional en modelos de machine learning.
 
 ```{r}
+
 reduce_dimensionality <- function(data, patterns, new_names) {
-  # Verifica que las listas de patrones y nombres nuevos tengan la misma longitud
   if (length(patterns) != length(new_names)) {
     stop("Las listas de patrones y nombres nuevos deben tener la misma longitud")
   }
 
   for (i in seq_along(patterns)) {
-    # Selecciona las columnas que quieres reducir
     columns <- grepl(patterns[i], colnames(data))
     data_columns <- data[, columns]
 
-    # Realiza el PCA
-    pca_result <- princomp(data_columns, cor = TRUE)
+    # Manejar datos faltantes
+    data_columns <- na.omit(data_columns)
 
-    # Selecciona los primeros N componentes principales
-    N <- sqrt(ncol(data_columns))
-    pca_columns <- pca_result$scores[, 1:N]
+    # Escalar los datos
+    data_columns <- scale(data_columns)
 
-    # Crea los nombres de las nuevas columnas
+    # Realizar PCA con prcomp en lugar de princomp
+    pca_result <- prcomp(data_columns, scale. = TRUE)
+
+    # Seleccionar los primeros N componentes principales
+    N <- min(ncol(data_columns), 3)  # Limitar a un máximo de 3 componentes
+    pca_columns <- pca_result$x[, 1:N]
+
     new_column_names <- paste0(new_names[i], ".PCA", 1:N)
 
-    # Reemplaza las columnas originales con los componentes principales
     data <- data[, !columns]
     data <- cbind(data, setNames(as.data.frame(pca_columns), new_column_names))
   }
 
   return(data)
 }
+
+
 ```
 
+## 2. Aplicación del proceso de selección de atributos
+
+Lectura de los datos obtenidos tras aplicar el proceso de transformación.
+
 ```{r}
-patterns <- c("^Comunidad", "^Universidad", "^Rama", "^Ámbito", "^Zona.de.nacionalidad")
-new_names <- c("Comunidad", "Universidad", "Rama", "Ámbito", "Zona.de.nacionalidad")
+
+data <- read.csv("../data/CleanData/datos_transformados.csv")
+```
+
+Eliminar aquellas columnas que no aportan información al problema.
+
+La razón detrás de la eliminación de las columnas "Número de Estudiantes", "Curso" y "Universidad" se basa en consideraciones específicas que afectan la calidad y la relevancia de los datos para el análisis y modelización
+
+1.  **Número de Estudiantes:**
+
+    -   La columna "Número de Estudiantes" fue eliminada debido a la presencia de valores iguales a cero cuando la zona de nacionalidad era diferente a España. Para lograr una mayor generalización y consideración de nacionalidades diversas, la eliminación de esta columna resultó más adecuada, permitiendo una representación más completa de los datos en relación con las diferentes nacionalidades.
+
+2.  **Curso:**
+
+    -   La columna "Curso" fue eliminada al decidir no tener en cuenta análisis de series temporales en el estudio. Al excluir esta variable temporal, se simplifica el conjunto de datos, enfocándolo en aspectos estáticos y facilitando la interpretación del modelo sin consideraciones temporales.
+
+3.  **Universidad:**
+
+    -   La columna "Universidad" fue eliminada debido a la limitada cantidad de datos disponibles para cada universidad específica. En lugar de modelar por universidad, se optó por generalizar a nivel de comunidad autónoma para asegurar una representación más robusta y evitar posibles sesgos causados por la escasez de datos por universidad.
+
+```{r}
+
+data <- data[, -which(names(data) == "Número.de.estudiantes")]
+data <- data[, -which(names(data) == "Curso")]
+data <- data %>% select(-starts_with("Universidad"))
+```
+
+Reducir la dimensionalidad generada tras haber realizado el proceso de One-Hot encoding.
+
+```{r}
+patterns <- c("^Comunidad", "^Rama", "^Ámbito", "^Zona.de.nacionalidad")
+new_names <- c("Comunidad", "Rama", "Ámbito", "Zona.de.nacionalidad")
 df_res <- reduce_dimensionality(data, patterns, new_names)
 ```
 
-## Eliminamos las columnas que tengan relación con Universidad
-
-```{r}
-df_res <- df_res %>% select(-starts_with("Universidad"))
-```
+Redondear todos los atributos numéricos a dos decimales.
 
 ```{r}
 # Redondear a 2 decimales todos los atributos numéricos
 df_res <- df_res %>% mutate_if(is.numeric, round, 2)
 ```
 
-## Random Forest
+Uso de Random Forest para ver la importancia de las distintas características con la columna "Nota media".
 
 ```{r}
 set.seed(1234)
@@ -84,7 +119,7 @@ print(importance(rf_model))
 varImpPlot(rf_model)
 ```
 
-## Exportación de datos a CSV
+## 5. Exportación de los datos resultantes a un fichero CSV
 
 ```{r}
 
