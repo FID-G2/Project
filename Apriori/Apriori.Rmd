@@ -1,8 +1,10 @@
 ```{r}
 install.packages("arules")
-library(arules)
-
 install.packages("arulesViz")
+```
+
+```{r}
+library(arules)
 library(arulesViz)
 ```
 
@@ -15,85 +17,124 @@ dataset_filtrado <- read.csv("dataset_filtrado.csv")
 dataset_modificado <- read.csv("dataset_modificado.csv")
 ```
 
-Replicamos las filas por cada estudiante, para que cada fila represente a un estudiante. Dividimos el número de estudiantes por 1000 para que no tengamos un dataset demasiado grande mientras mantenemos la proporcionalidad del tamaño de cada rama de enseñanza por sexo
+Creamos un dataset por cada comunidad autónoma
 ```{r}
-replicated_dataset_limpio <- list()
-
-for (i in 1:nrow(dataset_limpio)) {
-  replicated_pair <- replicate(round(dataset_limpio$Número.de.estudiantes[i]/1000), dataset_limpio[i, 1:2], simplify = FALSE)
-  replicated_dataset_limpio <- c(replicated_dataset_limpio, replicated_pair)
+create_datasets <- function(dataset) {
+  # Identify unique values in the categorical column
+  unique_categories <- unique(dataset$"Comunidad.Autónoma")
+  
+  # Create a list of data frames, each corresponding to a unique category
+  split_data <- split(dataset, dataset$"Comunidad.Autónoma")
+  
+  # Remove the categorical column from each data frame in the list
+  split_data <- lapply(split_data, function(df) df[, !names(df) %in% "Comunidad.Autónoma"])
+  
+  # Optionally, you can assign meaningful names to the list elements
+  names(split_data) <- unique_categories
+  
+  return (split_data)
 }
 
-replicated_dataset_limpio <- do.call(rbind, replicated_dataset_limpio)
-replicated_dataset_limpio <- as.data.frame(replicated_dataset_limpio)
+datasets_limpios <- create_datasets(dataset_limpio)
+datasets_filtrados <- create_datasets(dataset_filtrado)
+datasets_modificados <- create_datasets(dataset_modificado)
+```
 
+Replicamos las filas por cada estudiante, para que cada fila represente a un estudiante. Dividimos el número de estudiantes por 1000 para que no tengamos un dataset demasiado grande mientras mantenemos la proporcionalidad del tamaño de cada rama de enseñanza por sexo y comunidad autónoma
+```{r}
 
-replicated_dataset_filtrado <- list()
+crear_datasets_replicados <- function(datasets) {
+  
+  replicated_datasets <- list()
 
-for (i in 1:nrow(dataset_filtrado)) {
-  replicated_pair <- replicate(round(dataset_filtrado$Número.de.estudiantes[i]/1000), dataset_filtrado[i, 1:2], simplify = FALSE)
-  replicated_dataset_filtrado <- c(replicated_dataset_filtrado, replicated_pair)
+  for (comunidad_autonoma in names(datasets)) {
+    dataset <- datasets[[comunidad_autonoma]]
+    
+    replicated_dataset <- list()
+    
+    for (i in 1:nrow(dataset)) {
+      replicated_pair <- replicate(round(dataset$Número.de.estudiantes[i]/1000), dataset[i, 1:2], simplify = FALSE)
+      replicated_dataset <- c(replicated_dataset, replicated_pair)
+    }
+  
+    replicated_dataset <- do.call(rbind, replicated_dataset)
+    replicated_dataset <- as.data.frame(replicated_dataset)
+    
+    replicated_datasets[[comunidad_autonoma]] <- replicated_dataset
+  }
+
+  return(replicated_datasets)
 }
 
-replicated_dataset_filtrado <- do.call(rbind, replicated_dataset_filtrado)
-replicated_dataset_filtrado <- as.data.frame(replicated_dataset_filtrado)
-
-
-replicated_dataset_modificado <- list()
-
-for (i in 1:nrow(dataset_modificado)) {
-  replicated_pair <- replicate(round(dataset_modificado$Número.de.estudiantes[i]/1000), dataset_modificado[i, 1:2], simplify = FALSE)
-  replicated_dataset_modificado <- c(replicated_dataset_modificado, replicated_pair)
-}
-
-replicated_dataset_modificado <- do.call(rbind, replicated_dataset_modificado)
-replicated_dataset_modificado <- as.data.frame(replicated_dataset_modificado)
+replicated_datasets_limpios <- crear_datasets_replicados(datasets_limpios)
+replicated_datasets_filtrados <- crear_datasets_replicados(datasets_filtrados)
+replicated_datasets_modificados <- crear_datasets_replicados(datasets_modificados)
 
 ```
 
 Convertimos a formato de transacciones
 ```{r}
-replicated_dataset_limpio$Sexo <- as.factor(replicated_dataset_limpio$Sexo)
-replicated_dataset_limpio$Rama.de.enseñanza <- as.factor(replicated_dataset_limpio$Rama.de.enseñanza)
-replicated_dataset_filtrado$Sexo <- as.factor(replicated_dataset_filtrado$Sexo)
-replicated_dataset_filtrado$Rama.de.enseñanza <- as.factor(replicated_dataset_filtrado$Rama.de.enseñanza)
-replicated_dataset_modificado$Sexo <- as.factor(replicated_dataset_modificado$Sexo)
-replicated_dataset_modificado$Rama.de.enseñanza <- as.factor(replicated_dataset_modificado$Rama.de.enseñanza)
+create_transactions <- function(datasets) {
+  
+  trans_list <- list()
+  
+  for (comunidad_autonoma in names(datasets)) {
+    dataset <- datasets[[comunidad_autonoma]]
+    
+    dataset$Sexo <- as.factor(dataset$Sexo)
+    dataset$Rama.de.enseñanza <- as.factor(dataset$Rama.de.enseñanza)
+    
+    trans <- as(dataset[, c("Sexo", "Rama.de.enseñanza")], "transactions")
+    
+    trans_list[[comunidad_autonoma]] <- trans
+  }
+  
+  return(trans_list)
+}
 
-transactions_limpio <- as(replicated_dataset_limpio[, c("Sexo", "Rama.de.enseñanza")], "transactions")
-transactions_filtrado <- as(replicated_dataset_filtrado[, c("Sexo", "Rama.de.enseñanza")], "transactions")
-transactions_modificado <- as(replicated_dataset_modificado[, c("Sexo", "Rama.de.enseñanza")], "transactions")
+transacitons_limpio <- create_transactions(replicated_datasets_limpios)
+transacitons_filtrado <- create_transactions(replicated_datasets_filtrados)
+transacitons_modificado <- create_transactions(replicated_datasets_modificados)
 ```
 
 Ajustamos los parámetros para el algoritmo Apriori
 ```{r}
-rules_limpio <- apriori(
-  transactions_limpio,
-  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
-)
-rules_filtrado <- apriori(
-  transactions_filtrado,
-  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
-)
-rules_modificado <- apriori(
-  transactions_modificado,
-  parameter = list(support = 0.05, confidence = 0.3, target = "rules")
-)
+create_rules <- function(trans_list) {
+  rules_list <- list()
+  
+  for (comunidad_autonoma in names(trans_list)) {
+      trans <- trans_list[[comunidad_autonoma]]
+      
+      rules <- apriori(
+        trans,
+        parameter = list(support = 0.05, confidence = 0.3, target = "rules")
+      )
+      
+      rules_list[[comunidad_autonoma]] <- rules
+  } 
+  
+  return(rules_list)
+  
+}
 
-inspect(rules_limpio)
-inspect(rules_filtrado)
-inspect(rules_modificado)
+rules_limpio <- create_rules(transacitons_limpio)
+rules_filtrado <- create_rules(transacitons_filtrado)
+rules_modificado <- create_rules(transacitons_modificado)
 ```
 
 Mostramos gráficamente las reglas de nuestro experimento
 ```{r}
-# plot(rules_limpio, method = "graph", main = "Dataset limpio")
-# plot(rules_limpio, method = "grouped", main = "Dataset limpio")
-# plot(rules_limpio, method = "matrix", main = "Dataset limpio")
-# plot(rules_limpio, method = "scatterplot", main = "Dataset limpio")
-plot(rules_limpio, method = "paracoord", main = "Dataset limpio")
-plot(rules_filtrado, method = "paracoord", main = "Dataset filtrado")
-plot(rules_modificado, method = "paracoord", main = "Dataset modificado")
+
+plot_rules <- function(rules_list, dataset_name) {
+  for (comunidad_autonoma in names(rules_list)) {
+    plot(rules_limpio[[comunidad_autonoma]], method = "paracoord", main = paste0(paste0(paste0("Dataset ", dataset_name), " en "), comunidad_autonoma))
+  } 
+}
+
+plot_rules(rules_limpio, "limpio")
+plot_rules(rules_filtrado, "filtrado")
+plot_rules(rules_modificado, "modificado")
+
 ```
 
 Viendo la dirección de las flechas, concluimos que hay una relación entre las ramas de enseñanza de ciencias e ingeniería y arquitectura hacia los hombres, mientras que existe una mayor relación entre las mujeres y las carreras de ciencias de la salud, artes y humanidades y ciencias sociales y jurídicas. El ruido del sexo desconocido no ha supuesto un problema para esta conclusión, ya que ninguna rama del conocimiento se relaciona con este sexo.
