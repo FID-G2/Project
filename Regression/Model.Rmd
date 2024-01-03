@@ -24,13 +24,25 @@ Lectura de los datos obtenidos tras aplicar el proceso de selección.
 
 ```{r}
 
-df <- read.csv("../data/CleanData/datos_seleccion_atributos.csv")
+df <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
 control <- trainControl(method = "cv", number = 10)
 ```
 
 ## 2. Modelos
 
-### 2.1. Random Forest
+```{r}
+#Código reutilizable
+# Dividir el conjunto de datos en entrenamiento y prueba (80-20)
+set.seed(123) 
+index_entrenamiento <- createDataPartition(df$Nota.media, p = 0.8, list = FALSE)
+datos_entrenamiento <- df[index_entrenamiento, ]
+datos_prueba <- df[-index_entrenamiento, ]
+
+```
+
+### 2.1. Random Forest 
+
+#### 2.1.1. Entrenamiento con validación cruzada
 
 ```{r}
 
@@ -38,7 +50,32 @@ model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control,
 print(model_rf)
 ```
 
+#### 2.1.2. Entrenamiento con 80% de los datos y 20% para test
+
+
+# Entrenar el modelo Random Forest con el 80% de los datos de entrenamiento
+
+```{r}
+model_rf_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
+
+
+print(model_rf_alternative)
+
+```
+
+```{r}
+# Realizar predicciones en el conjunto de prueba
+predicciones <- predict(model_rf_alternative, newdata = datos_prueba)
+
+# Evaluar el rendimiento del modelo en el conjunto de prueba
+metricas <- postResample(predicciones, datos_prueba$Nota.media)
+print(metricas)
+```
+
+
 ### 2.2. LightGBM
+
+#### 2.2.1. Entrenamiento de LightGBM con validación cruzada
 
 ```{r}
 
@@ -89,14 +126,79 @@ cv_results$record_evals$valid$l1
 cv_results$record_evals$valid$l2
 ```
 
+#### 2.2.2. Entrenamiento de LightGBM con 80% de los datos y 20% para test
+
+```{r}
+# Preparar los datos de entrenamiento y prueba para LightGBM
+data_entrenamiento <- as.matrix(datos_entrenamiento[, -which(names(datos_entrenamiento) == "Nota.media")])
+label_entrenamiento <- datos_entrenamiento$Nota.media
+lgb_data_entrenamiento <- lgb.Dataset(data = data_entrenamiento, label = label_entrenamiento)
+
+data_prueba <- as.matrix(datos_prueba[, -which(names(datos_prueba) == "Nota.media")])
+label_prueba <- datos_prueba$Nota.media
+lgb_data_prueba <- lgb.Dataset(data = data_prueba, label = label_prueba)
+
+# Especificar los parámetros del modelo
+params <- list(objective = "regression",
+               metric = list("rmse", "mse", "mae"),
+               num_leaves = 31,
+               learning_rate = 0.05,
+               nthread = 2,
+               max_depth = 2,
+               min_data_in_leaf = 20)
+
+# Entrenar el modelo con LightGBM
+modelo_lgb <- lgb.train(params,
+                        data = lgb_data_entrenamiento,
+                        nrounds = 10,
+                        valids = list(valid = lgb_data_prueba),
+                        early_stopping_rounds = 5,
+                        verbose = 0)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones_prueba <- predict(modelo_lgb, data_prueba)
+
+# Evaluar el rendimiento del modelo en el conjunto de prueba
+metricas_prueba <- list(
+  RMSE = sqrt(mean((predicciones_prueba - label_prueba)^2)),
+  MAE = mean(abs(predicciones_prueba - label_prueba)),
+  MSE = mean((predicciones_prueba - label_prueba)^2)
+)
+
+# Mostrar las métricas en el conjunto de prueba
+print(metricas_prueba)
+```
+
 ### 2.3. Decision Tree
 
+#### 2.3.1. Entrenamiento de Decision Tree con validación cruzada
 ```{r}
 
 model_tree <- train(Nota.media ~ ., data = df, method = "rpart", trControl = control, control = rpart.control(cp = 1))
 
 print(model_tree)
 
+```
+
+#### 2.3.2. Entrenamiento de Decision Tree con 80% de los datos para entrenamiento y 20% para test
+```{r}
+# Entrenar el modelo de árbol de decisión
+modelo_tree <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 1))
+
+# Mostrar el modelo entrenado
+print(modelo_tree)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones_prueba <- predict(modelo_tree, newdata = datos_prueba)
+
+# Evaluar el rendimiento del modelo en el conjunto de prueba
+metricas_prueba <- list(
+  RMSE = sqrt(mean((predicciones_prueba - datos_prueba$Nota.media)^2)),
+  MAE = mean(abs(predicciones_prueba - datos_prueba$Nota.media))
+)
+
+# Mostrar las métricas en el conjunto de prueba
+print(metricas_prueba)
 ```
 
 ## 3. Predicción sobre modelos
@@ -264,3 +366,8 @@ predicciones <- predict(model_tree, newdata = df_prediccion)
 # Imprimir las predicciones
 print(predicciones[1]*14)
 ```
+
+
+# Entrenamiento de los modelos con 80/20
+
+
