@@ -16,6 +16,7 @@ library(caret)
 library(rpart)
 library(lightgbm)
 library(r2r)
+library(ggplot2)
 ```
 
 ## 1. Lectura de los datos
@@ -65,7 +66,7 @@ print(model_rf_alternative)
 
 ```{r}
 # Realizar predicciones en el conjunto de prueba
-predicciones <- predict(model_rf_alternative, newdata = datos_prueba)
+predicciones_rf <- predict(model_rf_alternative, newdata = datos_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
 metricas <- postResample(predicciones, datos_prueba$Nota.media)
@@ -148,7 +149,7 @@ params <- list(objective = "regression",
                min_data_in_leaf = 20)
 
 # Entrenar el modelo con LightGBM
-modelo_lgb <- lgb.train(params,
+model_lgb_alternative <- lgb.train(params,
                         data = lgb_data_entrenamiento,
                         nrounds = 10,
                         valids = list(valid = lgb_data_prueba),
@@ -156,13 +157,13 @@ modelo_lgb <- lgb.train(params,
                         verbose = 0)
 
 # Realizar predicciones en el conjunto de prueba
-predicciones_prueba <- predict(modelo_lgb, data_prueba)
+predicciones_prueba_lgbm <- predict(model_lgb_alternative, data_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
 metricas_prueba <- list(
-  RMSE = sqrt(mean((predicciones_prueba - label_prueba)^2)),
-  MAE = mean(abs(predicciones_prueba - label_prueba)),
-  MSE = mean((predicciones_prueba - label_prueba)^2)
+  RMSE = sqrt(mean((predicciones_prueba_lgbm - label_prueba)^2)),
+  MAE = mean(abs(predicciones_prueba_lgbm - label_prueba)),
+  MSE = mean((predicciones_prueba_lgbm - label_prueba)^2)
 )
 
 # Mostrar las métricas en el conjunto de prueba
@@ -183,23 +184,64 @@ print(model_tree)
 #### 2.3.2. Entrenamiento de Decision Tree con 80% de los datos para entrenamiento y 20% para test
 ```{r}
 # Entrenar el modelo de árbol de decisión
-modelo_tree <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 1))
+model_tree_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 1))
 
 # Mostrar el modelo entrenado
-print(modelo_tree)
+print(model_tree_alternative)
 
 # Realizar predicciones en el conjunto de prueba
-predicciones_prueba <- predict(modelo_tree, newdata = datos_prueba)
+predicciones_prueba_tree <- predict(model_tree_alternative, newdata = datos_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
 metricas_prueba <- list(
-  RMSE = sqrt(mean((predicciones_prueba - datos_prueba$Nota.media)^2)),
-  MAE = mean(abs(predicciones_prueba - datos_prueba$Nota.media))
+  RMSE = sqrt(mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)),
+  MAE = mean(abs(predicciones_prueba_tree - datos_prueba$Nota.media)),
+  MSE = mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)
 )
 
 # Mostrar las métricas en el conjunto de prueba
 print(metricas_prueba)
 ```
+
+### 2.4. Comparación de los modelos
+
+#### 2.4.1. Comparación de los modelos con validación cruzada
+
+```{r}
+```
+
+#### 2.4.2. Comparación de los modelos con 80% de los datos para entrenamiento y 20% para test
+
+```{r}
+
+# Crear un dataframe con las métricas y el tipo de modelo
+metricas_df <- data.frame(
+  Modelo = c(rep("Random Forest", 3), rep("Decision Tree", 3), rep("LightGBM", 3)),
+  Metrica = rep(c("RMSE", "MSE", "MAE"), 3),
+  Valor = c(
+    sqrt(mean((predicciones_rf - datos_prueba$Nota.media)^2)),
+    mean((predicciones_rf - datos_prueba$Nota.media)^2),
+    mean(abs(predicciones_rf - datos_prueba$Nota.media)),
+    sqrt(mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)),
+    mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2),
+    mean(abs(predicciones_prueba_tree - datos_prueba$Nota.media)),
+    sqrt(mean((predicciones_prueba_lgbm - label_prueba)^2)),
+    mean((predicciones_prueba_lgbm - label_prueba)^2),
+    mean(abs(predicciones_prueba_lgbm - label_prueba))
+  )
+)
+
+# Crear la gráfica
+ggplot(metricas_df, aes(x = Modelo, y = Valor, fill = Metrica)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Rendimiento del Modelo en Conjunto de Pruebas",
+       y = "Valor de Métrica",
+       x = "Modelo",
+       fill = "Métrica") +
+  theme_minimal()
+
+```
+
 
 ## 3. Predicción sobre modelos
 
