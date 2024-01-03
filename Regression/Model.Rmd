@@ -7,6 +7,7 @@
 #install.packages("rpart")
 #install.packages("lightgbm")
 #install.packages("randomForest")
+#install.packages("r2r")
 ```
 
 ```{r}
@@ -14,7 +15,7 @@ library(randomForest)
 library(caret)
 library(rpart)
 library(lightgbm)
-library(hash)
+library(r2r)
 ```
 
 ## 1. Lectura de los datos
@@ -100,7 +101,55 @@ print(model_tree)
 
 ## 3. Predicción sobre modelos
 
-### 3.1. Funciones auxiliares
+### 3.1. Dataframe auxiliar de PCAs
+
+```{r}
+
+data <- read.csv("../data/CleanData/var_PCAs.csv")
+head(data)
+```
+
+### 3.2. Hashes auxiliares
+
+```{r}
+
+claves_comunidades <- c("Andalucía","Aragón", "Asturias", "Cantabria", "Castilla y León", "Cataluña", "Extremadura", "Galicia", "La Rioja", "Madrid", "Murcia", "Navarra", "País Vasco")
+
+valores_comunidades <- c("Comunidad.AutónomaAndalucía","Comunidad.AutónomaAragón", "Comunidad.AutónomaAsturias", "Comunidad.AutónomaCantabria", "Comunidad.AutónomaCastilla.y.León", "Comunidad.AutónomaCataluña", "Comunidad.AutónomaExtremadura", "Comunidad.AutónomaGalicia", "Comunidad.AutónomaLa.Rioja", "Comunidad.AutónomaMadrid", "Comunidad.AutónomaMurcia", "Comunidad.AutónomaNavarra", "Comunidad.AutónomaPaís.Vasco")
+
+comunidades <- hashmap()
+comunidades[claves_comunidades] <- valores_comunidades
+
+claves_ramas_enseñanza <- c("Artes y Humanidades", "Ciencias", "Ciencias de la Salud", "Ciencias Sociales y Jurídicas", "Ingeniería y Arquitectura")
+
+valores_ramas_enseñanza <- c("Rama.de.enseñanzaArtes.y.Humanidades","Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaCiencias.de.la.Salud", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas", "Rama.de.enseñanzaIngeniería.y.Arquitectura")
+
+ramas_enseñanza <- hashmap()
+ramas_enseñanza[claves_ramas_enseñanza] <- valores_ramas_enseñanza
+
+claves_ambitos_estudio <- c("Arquitectura y construcción", "Artes", "Ciencias de la vida", "Ciencias Físicas, químicas, geológicas", "Derecho", "Economía", "Enfermería y atención a enfermos", "Humanidades", "Informática", "Ingenierías", "Lenguas", "Medicina", "Periodismo e información", "Trabajo social y orientación")
+
+valores_ambitos_estudio <- c("Ámbito.de.estudioArquitectura.y.construcción", "Ámbito.de.estudioArtes", "Ámbito.de.estudioCiencias.de.la.vida", "Ámbito.de.estudioCiencias.Físicas..químicas..geológicas", "Ámbito.de.estudioDerecho", "Ámbito.de.estudioEconomía", "Ámbito.de.estudioEnfermería.y.atención.a.enfermos", "Ámbito.de.estudioHumanidades", "Ámbito.de.estudioInformática", "Ámbito.de.estudioIngenierías", "Ámbito.de.estudioLenguas", "Ámbito.de.estudioMedicina", "Ámbito.de.estudioPeriodismo.e.información", "Ámbito.de.estudioTrabajo.social.y.orientación")
+  
+ambitos_estudio <- hashmap()
+ambitos_estudio[claves_ambitos_estudio] <- valores_ambitos_estudio
+
+valores_ambitos_estudio_ramas_enseñanza <- c("Rama.de.enseñanzaIngeniería.y.Arquitectura", "Rama.de.enseñanzaArtes.y.Humanidades", "Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas", "Rama.de.enseñanzaCiencias.de.la.Salud", "Rama.de.enseñanzaArtes.y.Humanidades", "Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaIngeniería.y.Arquitectura", "Rama.de.enseñanzaArtes.y.Humanidades", "Rama.de.enseñanzaCiencias.de.la.Salud", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas")
+
+ambitos_estudio_ramas_enseñanza <- hashmap()
+ambitos_estudio_ramas_enseñanza[valores_ambitos_estudio] <- valores_ambitos_estudio_ramas_enseñanza
+
+claves_zonas_nacionalidad <- c("Asia y Oceanía", "EEUU y Canadá", "España", "Norte de África", "Resto de África", "Resto de Europa", "Unión Europea")
+
+valores_zonas_nacionalidad <- c("Zona.de.nacionalidadAsia.y.Oceanía", "Zona.de.nacionalidadEEUU.y.Canadá", "Zona.de.nacionalidadEspaña", "Zona.de.nacionalidadNorte.de.África", "Zona.de.nacionalidadResto.de.África", "Zona.de.nacionalidadResto.de.Europa", "Zona.de.nacionalidadUnión.Europea")
+
+zonas_nacionalidad <- hashmap()
+zonas_nacionalidad[claves_zonas_nacionalidad] <- valores_zonas_nacionalidad
+
+
+```
+
+### 3.3. Funciones auxiliares
 
 ```{r}
 
@@ -113,35 +162,9 @@ binary_encode <- function(data, variable, category1, category2) {
 }
 ```
 
-### 3.2. Input del usuario
-
-```{r}
-nuevos_datos_rf <- data.frame(
-    Comunidad.Autónoma = "Comunidad.AutónomaAndalucía",
-    Sexo = "Hombres",
-    Forma.de.admisión = "PAU",
-    Rama.de.enseñanza = "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas",
-    Ámbito.de.estudio = "Ámbito.de.estudioEconomía",
-    Zona.de.nacionalidad = "Zona.de.nacionalidadEspaña"
-)
-```
-
 ```{r}
 
-data <- read.csv("../data/CleanData/var_PCAs.csv")
-print(data)
-```
-
-```{r}
-
-df_genero <- binary_encode(nuevos_datos_rf, "Sexo", "Hombres", "Mujeres")
-df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
-```
-
-```{r}
-
-
-agregar_pca_a_datos <- function(data, df_indices, nombre_columna) {
+agregar_datos_pca <- function(data, df_indices, nombre_columna, prefijo_pca) {
 
   # Obtener el nombre de la comunidad y la fila correspondiente
   valor <- data[[nombre_columna]]
@@ -152,8 +175,7 @@ agregar_pca_a_datos <- function(data, df_indices, nombre_columna) {
     # Extraer los valores de PCA de la fila
     valores_pca <- fila[, grepl("^PCA", colnames(fila))]
 
-    # Renombrar las columnas a Comunidad.PCA1, Comunidad.PCA2, ...
-    colnames(valores_pca) <- paste0("Comunidad.", colnames(valores_pca))
+    colnames(valores_pca) <- paste0(prefijo_pca, colnames(valores_pca))
 
     # Agregar las columnas de PCA al dataframe de datos
     data_con_pca <- cbind(data, valores_pca)
@@ -166,169 +188,79 @@ agregar_pca_a_datos <- function(data, df_indices, nombre_columna) {
     return(NULL)
   }
 }
-
-# Uso de la función
-agragar_pca_comunidad <- agregar_pca_a_datos(df_nivel, data, "Comunidad.Autónoma")
-head(nuevos_datos_con_pca)
-```
-
-# Diccionarios
-
-```{r}
-
-# Comunidades Autónomas
-comunidades_autonomas <- c("Comunidad.AutónomaAndalucía","Comunidad.AutónomaAragón", "Comunidad.AutónomaAsturias", "Comunidad.AutónomaCantabria", 
-                           "Comunidad.AutónomaCastilla y León", "Comunidad.AutónomaCataluña", "Comunidad.AutónomaExtremadura", 
-                           "Comunidad.AutónomaGalicia", "Comunidad.AutónomaLa Rioja", "Comunidad.AutónomaMadrid", 
-                           "Comunidad.AutónomaMurcia", "Comunidad.AutónomaNavarra", "Comunidad.AutónomaPaís Vasco")
-
-# Crear diccionario
-diccionario_comunidades <- setNames(seq_along(comunidades_autonomas), comunidades_autonomas)
-
-# Imprimir el diccionario
-print(diccionario_comunidades)
-
-
-# Universidades
-# Datos proporcionados
-universidades <- c("UniversidadAlcalá", "UniversidadAlicante", "UniversidadAutónoma de Barcelona", 
-                   "UniversidadAutónoma de Madrid", "UniversidadBarcelona", "UniversidadBurgos", 
-                   "UniversidadCádiz", "UniversidadCantabria", "UniversidadCarlos III de Madrid", 
-                   "UniversidadCastilla-La Mancha", "UniversidadComplutense de Madrid", "UniversidadCórdoba", 
-                   "UniversidadExtremadura", "UniversidadGirona", "UniversidadGranada", "UniversidadHuelva", 
-                   "UniversidadIlles Balears (Les)", "UniversidadJaén", "UniversidadJaume I de Castellón", 
-                   "UniversidadLa Laguna", "UniversidadLa Rioja", "UniversidadLas Palmas de Gran Canaria", 
-                   "UniversidadLeón", "UniversidadLleida", "UniversidadMálaga", "UniversidadMiguel Hernández de Elche", 
-                   "UniversidadMurcia", "UniversidadOviedo", "UniversidadPablo de Olavide", 
-                   "UniversidadPaís Vasco/Euskal Herriko Unibertsitatea", "UniversidadPolitécnica de Cartagena", 
-                   "UniversidadPolitécnica de Catalunya", "UniversidadPolitécnica de Madrid", 
-                   "UniversidadPolitècnica de València", "UniversidadPompeu Fabra", "UniversidadPública de Navarra", 
-                   "UniversidadRey Juan Carlos", "UniversidadRovira i Virgili", "UniversidadSalamanca", 
-                   "UniversidadSantiago de Compostela", "UniversidadSevilla", "UniversidadValència (Estudi General)", 
-                   "UniversidadValladolid", "UniversidadVigo", "UniversidadZaragoza")
-
-# Crear diccionario
-diccionario_universidades <- setNames(seq_along(universidades), universidades)
-
-# Imprimir el diccionario
-print(diccionario_universidades)
-
-# Ramas de enseñanza
-ramas_enseñanza <- c("Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaCiencias de la Salud", 
-                     "Ciencias Sociales y Jurídicas", "Rama.de.enseñanzaIngeniería y Arquitectura")
-
-# Crear diccionario
-diccionario_ramas_enseñanza <- setNames(seq_along(ramas_enseñanza), ramas_enseñanza)
-
-# Imprimir el diccionario
-print(diccionario_ramas_enseñanza)
-
-# Ámbito de estudio
-ambito_estudio <- c("Ámbito.de.estudioArquitectura y construcción", "Ámbito.de.estudioArtes", 
-                    "Ámbito.de.estudioCiencias de la vida", "Ámbito.de.estudioCiencias Físicas, químicas, geológicas", 
-                    "Ámbito.de.estudioDerecho", "Economía", "Ámbito.de.estudioEnfermería y atención a enfermos", 
-                    "Ámbito.de.estudioHumanidades", "Ámbito.de.estudioInformática", "Ámbito.de.estudioIngenierías", 
-                    "Ámbito.de.estudioLenguas", "Ámbito.de.estudioMedicina", "Ámbito.de.estudioPeriodismo e información", 
-                    "Ámbito.de.estudioTrabajo social y orientación")
-
-# Crear diccionario
-diccionario_ambito_estudio <- setNames(seq_along(ambito_estudio), ambito_estudio)
-
-# Imprimir el diccionario
-print(diccionario_ambito_estudio)
-
-# Zona de nacionalidad
-zona_nacionalidad <- c("Zona.de.nacionalidadAsia y Oceanía", "Zona.de.nacionalidadEEUU y Canadá", 
-                       "España", "Zona.de.nacionalidadNorte de África", 
-                       "Zona.de.nacionalidadResto de África", "Zona.de.nacionalidadResto de Europa", 
-                       "Zona.de.nacionalidadUnión Europea")
-
-# Crear diccionario
-diccionario_zona_nacionalidad <- setNames(seq_along(zona_nacionalidad), zona_nacionalidad)
-
-# Imprimir el diccionario
-print(diccionario_zona_nacionalidad)
-
-
 ```
 
 ```{r}
-# Crear una fila única con un valor de 1 en la columna correspondiente
-nueva_fila_codificada <- as.data.frame(t(apply(nuevos_datos_rf, 1, function(row) {
-  result <- numeric(2+length(diccionario_comunidades) +
-                    length(diccionario_universidades) +
-                    length(diccionario_ramas_enseñanza) +
-                    length(diccionario_ambito_estudio) +
-                    length(diccionario_zona_nacionalidad))
+
+adaptar_dataframe <- function(df){
   
-  result[as.numeric(row["Comunidad.Autónoma"])] <- 1
-  result[as.numeric(row["Universidad"])] <- 1
-  result[as.numeric(row["Rama.de.enseñanza"])] <- 1
-  result[as.numeric(row["Ámbito.de.estudio"])] <- 1
-  result[as.numeric(row["Zona.de.nacionalidad"])] <- 1
+  df_genero <- binary_encode(df, "Sexo", "Hombres", "Mujeres")
+  df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
   
-  return(result)
-})))
+  if(!has_key(comunidades, df_nivel$Comunidad.Autónoma)){
+    cat("Posibles valores para Comunidad.Autónoma:", paste(keys(comunidades), collapse = ", "))
+    stop("Asígnele un valor válido a Comunidad.Autónoma")
+  }
+  df_nivel$Comunidad.Autónoma <- comunidades[df_nivel$Comunidad.Autónoma]
+  
+  if (!has_key(ambitos_estudio, df_nivel$Ámbito.de.estudio)) {
+    cat("Posibles valores para Ámbito.de.estudio:", paste(keys(ambitos_estudio), collapse = ", "))
+    stop("Asígnele un valor válido a Ámbito.de.estudio")
+  }
+  df_nivel$Ámbito.de.estudio <- ambitos_estudio[[df_nivel$Ámbito.de.estudio]]
+  df_nivel$Rama.de.enseñanza <- ambitos_estudio_ramas_enseñanza[[df_nivel$Ámbito.de.estudio]]
+  
+  if (!has_key(zonas_nacionalidad, df_nivel$Zona.de.nacionalidad)) {
+    cat("Posibles valores para Zona.de.nacionalidad:", paste(keys(zonas_nacionalidad), collapse = ", "))
+    stop("Asígnele un valor válido a Zona.de.nacionalidad")
+  }
+  df_nivel$Zona.de.nacionalidad <- zonas_nacionalidad[[df_nivel$Zona.de.nacionalidad]]
 
-# Asignar nombres de columna
-colnames(nueva_fila_codificada) <- c("Sexo","Forma.de.admisión",names(diccionario_comunidades),
-                                     names(diccionario_universidades),
-                                     names(diccionario_ramas_enseñanza),
-                                     names(diccionario_ambito_estudio),
-                                     names(diccionario_zona_nacionalidad))
-
-# Aplicar las funciones de codificación
-df_genero <- binary_encode(nueva_fila_codificada, "Sexo", "Hombres", "Mujeres")
-df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
-
-# Agregar las columnas al principio del dataframe
-df_final <- cbind(df_nivel[, c("Sexo", "Forma.de.admisión")], df_nivel[, -c(1, 2)])
-
-# Exportar a CSV
-write.csv(df_final, "./data/CleanData/nuevos_datos_codificados.csv", row.names = FALSE)
-
-```
-
-```{r}
-# Crear una nueva fila codificada con 0's
-# Crear una nueva fila codificada con 0's
-nueva_fila_codificada <- as.data.frame(matrix(0, ncol = ncol(df_final), nrow = 1))
-colnames(nueva_fila_codificada) <- colnames(df_final)
-
-# Definir las columnas específicas
-columnas_especificas <- c("Comunidad.Autónoma", "Universidad", "Rama.de.enseñanza", "Ámbito.de.estudio", "Zona.de.nacionalidad")
-diccionarios_list <- list(diccionario_comunidades, diccionario_universidades, diccionario_ramas_enseñanza, diccionario_ambito_estudio, diccionario_zona_nacionalidad)
-columnas_especificas <- rep(columnas_especificas, sapply(diccionarios_list, length))
-
-# Asignar 1 en las columnas específicas según los valores proporcionados en nuevos_datos_rf
-for (i in seq_along(columnas_especificas)) {
-  col_name <- paste0(columnas_especificas[i], nuevos_datos_rf[[columnas_especificas[i]]])
-  nueva_fila_codificada[, col_name] <- 1
+  df_pca_comunidad <- agregar_datos_pca(df_nivel, data, "Comunidad.Autónoma", "Comunidad.")
+  df_pca_rama_enseñanza <- agregar_datos_pca(df_pca_comunidad, data, "Rama.de.enseñanza", "Rama.")
+  df_pca_ambito_estudio <- agregar_datos_pca(df_pca_rama_enseñanza, data, "Ámbito.de.estudio", "Ámbito.")
+  df_pca_zona_nacionalidad <- agregar_datos_pca(df_pca_ambito_estudio, data, "Zona.de.nacionalidad", "Zona.de.nacionalidad.")
+  
+  return(df_pca_zona_nacionalidad)
 }
+```
 
+### 3.4. Input del usuario
 
-# Actualizar las columnas existentes en df_final
-df_final[, colnames(nueva_fila_codificada)] <- nueva_fila_codificada
+```{r}
+nuevos_datos_rf <- data.frame(
+    Comunidad.Autónoma = "Andalucía",
+    Sexo = "Hombres",
+    Forma.de.admisión = "PAU",
+    Ámbito.de.estudio = "Economía",
+    Zona.de.nacionalidad = "España"
+)
 
-df_genero <- binary_encode(df_final, "Sexo", "Hombres", "Mujeres")
-df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
-# Exportar a CSV
-
-#Añadir al CSV una fila determinada llena de 0's
-df_nivel <- rbind(df_nivel, nueva_fila_codificada)
-
-write.csv(df_nivel, "./data/CleanData/nuevos_datos_codificados.csv", row.names = FALSE)
+head(nuevos_datos_rf)
 ```
 
 ```{r}
-# Leer el conjunto de datos
-df <- read.csv("./data/CleanData/nuevos_datos_codificados.csv")
 
-patterns <- c("^Comunidad", "^Rama", "^Ámbito", "^Zona.de.nacionalidad")
-new_names <- c("Comunidad", "Rama", "Ámbito", "Zona.de.nacionalidad")
-df_res <- reduce_dimensionality(df, patterns, new_names)
+df_prediccion <- adaptar_dataframe(nuevos_datos_rf)
+head(df_prediccion)
+```
 
-# Exportar a CSV
-write.csv(df_res, "./data/CleanData/datos_entrada_seleccion_atributos.csv", row.names = FALSE)
+### 3.5. Predicciones sobre Random Forest
 
+```{r}
+
+predicciones <- predict(model_rf, newdata = df_prediccion)
+
+# Imprimir las predicciones
+print(predicciones[1]*14)
+```
+
+### 3.6. Predicciones sobre Decision Tree
+
+```{r}
+
+predicciones <- predict(model_tree, newdata = df_prediccion)
+
+# Imprimir las predicciones
+print(predicciones[1]*14)
 ```
