@@ -192,7 +192,7 @@ ggplot(data17, aes(x = `Rama.de.enseñanza`, y = Sexo, fill = nota_media)) +
 ggplot(data18, aes(x = `Forma.de.admisión`, y = Sexo, fill = nota_media)) +
   geom_tile() +
   labs(title = "Heatmap de la Nota Media por Forma de admisión y Sexo") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ## 6. Histogramas

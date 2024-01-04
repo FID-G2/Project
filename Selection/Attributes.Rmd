@@ -55,7 +55,26 @@ reduce_dimensionality <- function(data, patterns, new_names) {
   return(data)
 }
 
+```
 
+```{r}
+
+calcular_indices <- function(valores, pattern){
+  
+  # Crear un vector vacío para almacenar los índices
+  indices <- numeric(length(valores))
+  
+  # Iterar sobre cada valor
+  for (i in seq_along(valores)) {
+    # Obtener el índice de la primera fila que tiene un 1 para este valor
+    indices[i] <- which(data[[valores[i]]] == 1)[1]
+  }
+  
+  # Crear un dataframe con los valores y sus índices correspondientes
+  df_indices <- data.frame(Variable = valores, Indice = indices, Pattern = pattern)
+  
+  return (df_indices)
+}
 ```
 
 ## 2. Aplicación del proceso de selección de atributos
@@ -65,6 +84,7 @@ Lectura de los datos obtenidos tras aplicar el proceso de transformación.
 ```{r}
 
 data <- read.csv("../data/CleanData/datos_transformados.csv")
+head(data)
 ```
 
 Eliminar aquellas columnas que no aportan información al problema.
@@ -79,7 +99,11 @@ La razón detrás de la eliminación de las columnas "Número de Estudiantes", "
 
     -   La columna "Curso" fue eliminada al decidir no tener en cuenta análisis de series temporales en el estudio. Al excluir esta variable temporal, se simplifica el conjunto de datos, enfocándolo en aspectos estáticos y facilitando la interpretación del modelo sin consideraciones temporales.
 
-3.  **Universidad:**
+3.  **Sexo:**
+
+    -   La columna "Sexo" fue eliminada para evitar introducir sesgos en los datos, de manera que las predicciones realizadas por los modelos no se vean afectadas por el valor de dicha columna.
+
+4.  **Universidad:**
 
     -   La columna "Universidad" fue eliminada debido a la limitada cantidad de datos disponibles para cada universidad específica. En lugar de modelar por universidad, se optó por generalizar a nivel de comunidad autónoma para asegurar una representación más robusta y evitar posibles sesgos causados por la escasez de datos por universidad.
 
@@ -87,7 +111,29 @@ La razón detrás de la eliminación de las columnas "Número de Estudiantes", "
 
 data <- data[, -which(names(data) == "Número.de.estudiantes")]
 data <- data[, -which(names(data) == "Curso")]
+data <- data[, -which(names(data) == "Sexo")]
 data <- data %>% select(-starts_with("Universidad"))
+```
+
+```{r}
+
+comunidades <- c("Comunidad.AutónomaAndalucía","Comunidad.AutónomaAragón", "Comunidad.AutónomaAsturias", "Comunidad.AutónomaCantabria", "Comunidad.AutónomaCastilla.y.León", "Comunidad.AutónomaCataluña", "Comunidad.AutónomaExtremadura", "Comunidad.AutónomaGalicia", "Comunidad.AutónomaLa.Rioja", "Comunidad.AutónomaMadrid", "Comunidad.AutónomaMurcia", "Comunidad.AutónomaNavarra", "Comunidad.AutónomaPaís.Vasco")
+
+ramas_enseñanza <- c("Rama.de.enseñanzaCiencias", "Rama.de.enseñanzaCiencias.de.la.Salud", "Rama.de.enseñanzaCiencias.Sociales.y.Jurídicas", "Rama.de.enseñanzaIngeniería.y.Arquitectura")
+
+ambitos_estudio <- c("Ámbito.de.estudioArquitectura.y.construcción", "Ámbito.de.estudioArtes", "Ámbito.de.estudioCiencias.de.la.vida", "Ámbito.de.estudioCiencias.Físicas..químicas..geológicas", "Ámbito.de.estudioDerecho", "Ámbito.de.estudioEconomía", "Ámbito.de.estudioEnfermería.y.atención.a.enfermos", "Ámbito.de.estudioHumanidades", "Ámbito.de.estudioInformática", "Ámbito.de.estudioIngenierías", "Ámbito.de.estudioLenguas", "Ámbito.de.estudioMedicina", "Ámbito.de.estudioPeriodismo.e.información", "Ámbito.de.estudioTrabajo.social.y.orientación")
+
+zonas_nacionalidad <- c("Zona.de.nacionalidadAsia.y.Oceanía", "Zona.de.nacionalidadEEUU.y.Canadá", "Zona.de.nacionalidadEspaña", "Zona.de.nacionalidadNorte.de.África", "Zona.de.nacionalidadResto.de.África", "Zona.de.nacionalidadResto.de.Europa", "Zona.de.nacionalidadUnión.Europea")
+
+df_comunidades <- calcular_indices(comunidades, "^Comunidad.PCA")
+df_ramas_enseñanza <- calcular_indices(ramas_enseñanza, "^Rama.PCA")
+df_ambitos_estudio <- calcular_indices(ambitos_estudio, "^Ámbito.PCA")
+df_zonas_nacionalidad <- calcular_indices(zonas_nacionalidad, "^Zona.de.nacionalidad.PCA")
+
+# Unificar todos los dataframes en uno solo
+df_indices <- rbind(df_comunidades, df_ramas_enseñanza, df_ambitos_estudio, df_zonas_nacionalidad)
+
+head(df_indices)
 ```
 
 Reducir la dimensionalidad generada tras haber realizado el proceso de One-Hot encoding.
@@ -96,6 +142,59 @@ Reducir la dimensionalidad generada tras haber realizado el proceso de One-Hot e
 patterns <- c("^Comunidad", "^Rama", "^Ámbito", "^Zona.de.nacionalidad")
 new_names <- c("Comunidad", "Rama", "Ámbito", "Zona.de.nacionalidad")
 df_res <- reduce_dimensionality(data, patterns, new_names)
+head(df_res)
+```
+
+```{r}
+
+# Función para obtener las PCA según un patrón
+get_pca_values <- function(df, df_indices) {
+  df_pca <- data.frame()
+  variables <- df_indices$Variable
+  indices <- df_indices$Indice
+  patterns <- df_indices$Pattern
+  
+  for (i in 1:length(indices)) {
+    # Obtener el índice y el nombre de la comunidad de la fila actual
+    variable <- variables[i]
+    indice <- as.numeric(indices[i])
+    pattern <- patterns[i]
+    
+    # Obtener las columnas que comienzan con el patrón
+    pca_columns <- grepl(pattern, colnames(df))
+    
+    # Obtener los valores de esas columnas para el índice especificado en indices
+    matching_rows <- df[indice, ]
+    
+    # Verificar si hay coincidencias antes de proceder
+    if (nrow(matching_rows) > 0) {
+      pca_values <- matching_rows[, pca_columns]
+      # Crear un dataframe temporal con los valores de PCA y el nombre de la variable
+      colnames(pca_values) <- paste0("PCA", seq_len(ncol(pca_values)))
+
+      df_temp <- as.data.frame(t(pca_values))
+      
+      df_temp <- as.data.frame(t(df_temp))
+      
+      df_temp$Variable <- variable
+      
+      # Añadir el dataframe temporal al dataframe df_pca
+      df_pca <- rbind(df_pca, df_temp)
+      
+      row.names(df_pca)[i] <- i
+    } else {
+      cat("No se encontraron coincidencias para el índice:", indice, "\n")
+    }
+  }
+  
+  return(df_pca)
+}
+```
+
+```{r}
+
+df_PCAs = get_pca_values(df_res, df_indices)
+print(df_PCAs)
 ```
 
 Redondear todos los atributos numéricos a dos decimales.
@@ -103,6 +202,7 @@ Redondear todos los atributos numéricos a dos decimales.
 ```{r}
 # Redondear a 2 decimales todos los atributos numéricos
 df_res <- df_res %>% mutate_if(is.numeric, round, 2)
+df_PCAs <- df_PCAs %>% mutate_if(is.numeric, round, 2)
 ```
 
 Uso de Random Forest para ver la importancia de las distintas características con la columna "Nota media".
@@ -125,5 +225,12 @@ varImpPlot(rf_model)
 
 nombre_archivo <- "../data/CleanData/datos_seleccion_atributos.csv"
 write.csv(df_res, nombre_archivo, row.names = FALSE)
-cat("Datos seleccionados y exportados a", nombre_archivo, "\n")
+cat("Datos exportados a", nombre_archivo, "\n")
+```
+
+```{r}
+
+nombre_archivo <- "../data/CleanData/var_PCAs.csv"
+write.csv(df_PCAs, nombre_archivo, row.names = FALSE)
+cat("Datos de PCAs exportados a", nombre_archivo, "\n")
 ```
