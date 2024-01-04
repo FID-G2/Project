@@ -99,7 +99,11 @@ La razón detrás de la eliminación de las columnas "Número de Estudiantes", "
 
     -   La columna "Curso" fue eliminada al decidir no tener en cuenta análisis de series temporales en el estudio. Al excluir esta variable temporal, se simplifica el conjunto de datos, enfocándolo en aspectos estáticos y facilitando la interpretación del modelo sin consideraciones temporales.
 
-3.  **Universidad:**
+3.  **Sexo:**
+
+    -   La columna "Sexo" fue eliminada para evitar introducir sesgos en los datos, de manera que las predicciones realizadas por los modelos no se vean afectadas por el valor de dicha columna.
+
+4.  **Universidad:**
 
     -   La columna "Universidad" fue eliminada debido a la limitada cantidad de datos disponibles para cada universidad específica. En lugar de modelar por universidad, se optó por generalizar a nivel de comunidad autónoma para asegurar una representación más robusta y evitar posibles sesgos causados por la escasez de datos por universidad.
 
@@ -107,6 +111,7 @@ La razón detrás de la eliminación de las columnas "Número de Estudiantes", "
 
 data <- data[, -which(names(data) == "Número.de.estudiantes")]
 data <- data[, -which(names(data) == "Curso")]
+data <- data[, -which(names(data) == "Sexo")]
 data <- data %>% select(-starts_with("Universidad"))
 ```
 

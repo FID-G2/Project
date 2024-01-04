@@ -25,7 +25,7 @@ Lectura de los datos obtenidos tras aplicar el proceso de selección.
 
 ```{r}
 
-df <- read.csv("./data/CleanData/datos_seleccion_atributos.csv")
+df <- read.csv("../data/CleanData/datos_seleccion_atributos.csv")
 control <- trainControl(method = "cv", number = 10)
 ```
 
@@ -41,27 +41,31 @@ datos_prueba <- df[-index_entrenamiento, ]
 
 ```
 
-### 2.1. Random Forest 
+### 2.1. Random Forest
 
 #### 2.1.1. Entrenamiento con validación cruzada
 
 ```{r}
 
 model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
-print(model_rf)
+
+RMSE <- model_rf$results$RMSE
+Rsquared <- model_rf$results$Rsquared
+MAE <- model_rf$results$MAE
+MSE <- RMSE^2
+
+metrics_rf_cv = list(RMSE,Rsquared,MAE,MSE)
+
+print(paste("RMSE:", metrics_rf_cv[1]))
+print(paste("R cuadrado:", metrics_rf_cv[2]))
+print(paste("MAE:", metrics_rf_cv[3]))
+print(paste("MSE:", metrics_rf_cv[4]))
 ```
 
 #### 2.1.2. Entrenamiento con 80% de los datos y 20% para test
 
-
-# Entrenar el modelo Random Forest con el 80% de los datos de entrenamiento
-
 ```{r}
 model_rf_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
-
-
-print(model_rf_alternative)
-
 ```
 
 ```{r}
@@ -69,10 +73,19 @@ print(model_rf_alternative)
 predicciones_rf <- predict(model_rf_alternative, newdata = datos_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
-metricas <- postResample(predicciones, datos_prueba$Nota.media)
-print(metricas)
-```
+metricas <- postResample(predicciones_rf, datos_prueba$Nota.media)
+RMSE <- unname(metricas["RMSE"])
+Rsquared <- unname(metricas["Rsquared"])
+MAE <- unname(metricas["MAE"])
+MSE <- as.numeric(RMSE)^2
 
+metrics_rf_alternative = list(RMSE,Rsquared,MAE,MSE)
+
+print(paste("RMSE:", metrics_rf_alternative[1]))
+print(paste("R cuadrado:", metrics_rf_alternative[2]))
+print(paste("MAE:", metrics_rf_alternative[3]))
+print(paste("MSE:", metrics_rf_alternative[4]))
+```
 
 ### 2.2. LightGBM
 
@@ -88,7 +101,7 @@ lgb_data <- lgb.Dataset(data = data, label = label)
 
 # Especificar los parámetros del modelo
 params <- list(objective = "regression",
-               metric = list("rmse","mse", "mae"), #TODO: Ver como se puede modificar esto para que salgan todas las métricas
+               metric = list("rmse","mse", "mae"), 
                num_leaves = 31,
                learning_rate = 0.05,
                nthread = 2,
@@ -103,28 +116,18 @@ cv_results <- lgb.cv(params,
                      verbose = 0)
 
 # Mostrar los resultados
-print(cv_results)
-```
+RMSE = sapply(cv_results$record_evals$valid$rmse$eval, min)
+RMSE = min(RMSE)
+MAE = sapply(cv_results$record_evals$valid$l1$eval, min)
+MAE = min(MAE)
+MSE = sapply(cv_results$record_evals$valid$l2$eval, min)
+MSE = min(MSE)
 
-**RMSE**
+metrics_lgb_cv = list(RMSE,MAE,MSE)
 
-```{r}
-
-cv_results$record_evals$valid$rmse
-```
-
-**MAE**
-
-```{r}
-
-cv_results$record_evals$valid$l1
-```
-
-**MSE**
-
-```{r}
-
-cv_results$record_evals$valid$l2
+print(paste("RMSE:", metrics_lgb_cv[1]))
+print(paste("MAE:", metrics_lgb_cv[2]))
+print(paste("MSE:", metrics_lgb_cv[3]))
 ```
 
 #### 2.2.2. Entrenamiento de LightGBM con 80% de los datos y 20% para test
@@ -160,47 +163,68 @@ model_lgb_alternative <- lgb.train(params,
 predicciones_prueba_lgbm <- predict(model_lgb_alternative, data_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
-metricas_prueba <- list(
+metrics_lgb_alternative <- list(
   RMSE = sqrt(mean((predicciones_prueba_lgbm - label_prueba)^2)),
   MAE = mean(abs(predicciones_prueba_lgbm - label_prueba)),
   MSE = mean((predicciones_prueba_lgbm - label_prueba)^2)
 )
 
 # Mostrar las métricas en el conjunto de prueba
-print(metricas_prueba)
+print(paste("RMSE:", metrics_lgb_alternative[1]))
+print(paste("MAE:", metrics_lgb_alternative[2]))
+print(paste("MSE:", metrics_lgb_alternative[3]))
 ```
 
 ### 2.3. Decision Tree
 
 #### 2.3.1. Entrenamiento de Decision Tree con validación cruzada
+
 ```{r}
 
 model_tree <- train(Nota.media ~ ., data = df, method = "rpart", trControl = control, control = rpart.control(cp = 1))
 
-print(model_tree)
+RMSE <- min(model_tree$results$RMSE)
+Rsquared <- min(model_tree$results$Rsquared)
+MAE <- min(model_tree$results$MAE)
+MSE <- RMSE^2
 
+metrics_tree_cv = list(RMSE,Rsquared,MAE,MSE)
+
+print(paste("RMSE:", metrics_tree_cv[1]))
+print(paste("R cuadrado:", metrics_tree_cv[2]))
+print(paste("MAE:", metrics_tree_cv[3]))
+print(paste("MSE:", metrics_tree_cv[4]))
 ```
 
 #### 2.3.2. Entrenamiento de Decision Tree con 80% de los datos para entrenamiento y 20% para test
+
 ```{r}
 # Entrenar el modelo de árbol de decisión
 model_tree_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 1))
-
-# Mostrar el modelo entrenado
-print(model_tree_alternative)
 
 # Realizar predicciones en el conjunto de prueba
 predicciones_prueba_tree <- predict(model_tree_alternative, newdata = datos_prueba)
 
 # Evaluar el rendimiento del modelo en el conjunto de prueba
-metricas_prueba <- list(
+
+# Primero, calculamos la suma total de los cuadrados (SST)
+sst <- sum((datos_prueba$Nota.media - mean(datos_prueba$Nota.media))^2)
+
+# Luego, calculamos la suma de los cuadrados de los residuos (SSR)
+ssr <- sum((predicciones_prueba_tree - datos_prueba$Nota.media)^2)
+
+metrics_tree_alternative <- list(
   RMSE = sqrt(mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)),
+  R_Cuadrado = 1 - (ssr / sst),
   MAE = mean(abs(predicciones_prueba_tree - datos_prueba$Nota.media)),
   MSE = mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)
 )
 
 # Mostrar las métricas en el conjunto de prueba
-print(metricas_prueba)
+print(paste("RMSE:", metrics_tree_alternative[1]))
+print(paste("R cuadrado:", metrics_tree_alternative[2]))
+print(paste("MAE:", metrics_tree_alternative[3]))
+print(paste("MSE:", metrics_tree_alternative[4]))
 ```
 
 ### 2.4. Comparación de los modelos
@@ -208,6 +232,33 @@ print(metricas_prueba)
 #### 2.4.1. Comparación de los modelos con validación cruzada
 
 ```{r}
+metricas_df_cv <- data.frame(
+  Modelo = c(rep("Random Forest", 4), rep("Decision Tree", 4), rep("LightGBM", 4)),
+  Metrica = rep(c("RMSE", "MSE", "MAE", "R cuadrado"), 3),
+  valor = c(
+    as.numeric(metrics_rf_cv[1]),
+    as.numeric(metrics_rf_cv[4]),
+    as.numeric(metrics_rf_cv[3]),
+    as.numeric(metrics_rf_cv[2]),
+    as.numeric(metrics_tree_cv[1]),
+    as.numeric(metrics_tree_cv[4]),
+    as.numeric(metrics_tree_cv[3]),
+    as.numeric(metrics_tree_cv[2]),
+    as.numeric(metrics_lgb_cv[1]),
+    as.numeric(metrics_lgb_cv[3]),
+    as.numeric(metrics_lgb_cv[2]),
+    0
+  )
+)
+
+# Crear la gráfica
+ggplot(metricas_df_cv, aes(x = Modelo, y = valor, fill = Metrica)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Rendimiento del Modelo en Conjunto de Pruebas",
+       y = "Valor de Métrica",
+       x = "Modelo",
+       fill = "Métrica") +
+  theme_minimal()
 ```
 
 #### 2.4.2. Comparación de los modelos con 80% de los datos para entrenamiento y 20% para test
@@ -215,24 +266,27 @@ print(metricas_prueba)
 ```{r}
 
 # Crear un dataframe con las métricas y el tipo de modelo
-metricas_df <- data.frame(
-  Modelo = c(rep("Random Forest", 3), rep("Decision Tree", 3), rep("LightGBM", 3)),
-  Metrica = rep(c("RMSE", "MSE", "MAE"), 3),
-  Valor = c(
-    sqrt(mean((predicciones_rf - datos_prueba$Nota.media)^2)),
-    mean((predicciones_rf - datos_prueba$Nota.media)^2),
-    mean(abs(predicciones_rf - datos_prueba$Nota.media)),
-    sqrt(mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2)),
-    mean((predicciones_prueba_tree - datos_prueba$Nota.media)^2),
-    mean(abs(predicciones_prueba_tree - datos_prueba$Nota.media)),
-    sqrt(mean((predicciones_prueba_lgbm - label_prueba)^2)),
-    mean((predicciones_prueba_lgbm - label_prueba)^2),
-    mean(abs(predicciones_prueba_lgbm - label_prueba))
+metricas_df_alternative <- data.frame(
+  Modelo = c(rep("Random Forest", 4), rep("Decision Tree", 4), rep("LightGBM", 4)),
+  Metrica = rep(c("RMSE", "MSE", "MAE", "R cuadrado"), 3),
+  valor = c(
+    as.numeric(metrics_rf_alternative[1]),
+    as.numeric(metrics_rf_alternative[4]),
+    as.numeric(metrics_rf_alternative[3]),
+    as.numeric(metrics_rf_alternative[2]),
+    as.numeric(metrics_tree_alternative[1]),
+    as.numeric(metrics_tree_alternative[4]),
+    as.numeric(metrics_tree_alternative[3]),
+    as.numeric(metrics_tree_alternative[2]),
+    as.numeric(metrics_lgb_alternative[1]),
+    as.numeric(metrics_lgb_alternative[3]),
+    as.numeric(metrics_lgb_alternative[2]),
+    0
   )
 )
 
 # Crear la gráfica
-ggplot(metricas_df, aes(x = Modelo, y = Valor, fill = Metrica)) +
+ggplot(metricas_df_alternative, aes(x = Modelo, y = valor, fill = Metrica)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Rendimiento del Modelo en Conjunto de Pruebas",
        y = "Valor de Métrica",
@@ -241,7 +295,6 @@ ggplot(metricas_df, aes(x = Modelo, y = Valor, fill = Metrica)) +
   theme_minimal()
 
 ```
-
 
 ## 3. Predicción sobre modelos
 
@@ -338,8 +391,7 @@ agregar_datos_pca <- function(data, df_indices, nombre_columna, prefijo_pca) {
 
 adaptar_dataframe <- function(df){
   
-  df_genero <- binary_encode(df, "Sexo", "Hombres", "Mujeres")
-  df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
+  df_nivel <- binary_encode(df, "Forma.de.admisión", "PAU", "FP")
   
   if(!has_key(comunidades, df_nivel$Comunidad.Autónoma)){
     cat("Posibles valores para Comunidad.Autónoma:", paste(keys(comunidades), collapse = ", "))
@@ -374,7 +426,6 @@ adaptar_dataframe <- function(df){
 ```{r}
 nuevos_datos_rf <- data.frame(
     Comunidad.Autónoma = "Andalucía",
-    Sexo = "Hombres",
     Forma.de.admisión = "PAU",
     Ámbito.de.estudio = "Economía",
     Zona.de.nacionalidad = "España"
@@ -389,7 +440,9 @@ df_prediccion <- adaptar_dataframe(nuevos_datos_rf)
 head(df_prediccion)
 ```
 
-### 3.5. Predicciones sobre Random Forest
+### 3.5. Predicciones sobre modelos entrenados con validación cruzada
+
+#### 3.5.1. Predicciones sobre Random Forest
 
 ```{r}
 
@@ -399,7 +452,7 @@ predicciones <- predict(model_rf, newdata = df_prediccion)
 print(predicciones[1]*14)
 ```
 
-### 3.6. Predicciones sobre Decision Tree
+#### 3.5.2. Predicciones sobre Decision Tree
 
 ```{r}
 
@@ -409,7 +462,36 @@ predicciones <- predict(model_tree, newdata = df_prediccion)
 print(predicciones[1]*14)
 ```
 
+### 3.6. Predicciones sobre modelos entrenados con partición de datos 80/20
 
-# Entrenamiento de los modelos con 80/20
+#### 3.6.1. Predicciones sobre Random Forest
+
+```{r}
+
+predicciones <- predict(model_rf_alternative, newdata = df_prediccion)
+
+# Imprimir las predicciones
+print(predicciones[1]*14)
+```
+
+#### 3.6.2. Predicciones sobre Decision Tree
+
+```{r}
+
+predicciones <- predict(model_tree_alternative, newdata = df_prediccion)
+
+# Imprimir las predicciones
+print(predicciones[1]*14)
+
+```
+
+#### 3.6.1. Predicciones sobre LightLGB
+
+```{r}
+
+data_prediction <- as.matrix(df_prediccion)
+predicciones <- predict(model_lgb_alternative, data_prediction)
 
 
+print(predicciones[1]*14)
+```
