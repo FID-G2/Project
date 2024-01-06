@@ -26,7 +26,7 @@ Lectura de los datos obtenidos tras aplicar el proceso de selección.
 ```{r}
 
 df <- read.csv("../data/CleanData/datos_seleccion_atributos.csv")
-control <- trainControl(method = "cv", number = 10)
+control <- trainControl(method = "cv", number = 20)
 ```
 
 ## 2. Modelos
@@ -47,7 +47,7 @@ datos_prueba <- df[-index_entrenamiento, ]
 
 ```{r}
 
-model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
+model_rf <- train(Nota.media ~ ., data = df, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 200)
 
 RMSE <- model_rf$results$RMSE
 Rsquared <- model_rf$results$Rsquared
@@ -65,7 +65,7 @@ print(paste("MSE:", metrics_rf_cv[4]))
 #### 2.1.2. Entrenamiento con 80% de los datos y 20% para test
 
 ```{r}
-model_rf_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 10)
+model_rf_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rf", trControl = control, tuneGrid = data.frame(mtry = 2), ntree = 200)
 ```
 
 ```{r}
@@ -100,19 +100,22 @@ label <- df$Nota.media
 lgb_data <- lgb.Dataset(data = data, label = label)
 
 # Especificar los parámetros del modelo
-params <- list(objective = "regression",
-               metric = list("rmse","mse", "mae"), 
-               num_leaves = 31,
-               learning_rate = 0.05,
-               nthread = 2,
-               max_depth = 2,
-               min_data_in_leaf = 20)
+params <- list(
+  objective = "regression",
+  metric = list("rmse","mse", "mae"), 
+  num_leaves = 120,  # Aumenta el número de hojas en el árbol
+  learning_rate = 0.01,  # Disminuye la tasa de aprendizaje
+  nthread = 4,
+  max_depth = 4,  # Aumenta la profundidad máxima del árbol
+  min_data_in_leaf = 20  # Disminuye el número mínimo de datos en una hoja
+)
+
 
 # Entrenar el modelo con validación cruzada
 cv_results <- lgb.cv(params,
                      data = lgb_data,
                      nrounds = 10,
-                     nfold = 10,
+                     nfold = 20,
                      verbose = 0)
 
 # Mostrar los resultados
@@ -143,13 +146,16 @@ label_prueba <- datos_prueba$Nota.media
 lgb_data_prueba <- lgb.Dataset(data = data_prueba, label = label_prueba)
 
 # Especificar los parámetros del modelo
-params <- list(objective = "regression",
-               metric = list("rmse", "mse", "mae"),
-               num_leaves = 31,
-               learning_rate = 0.05,
-               nthread = 2,
-               max_depth = 2,
-               min_data_in_leaf = 20)
+params <- list(
+  objective = "regression",
+  metric = list("rmse","mse", "mae"), 
+  num_leaves = 120,  # Aumenta el número de hojas en el árbol
+  learning_rate = 0.01,  # Disminuye la tasa de aprendizaje
+  nthread = 4,
+  max_depth = 4,  # Aumenta la profundidad máxima del árbol
+  min_data_in_leaf = 20  # Disminuye el número mínimo de datos en una hoja
+)
+
 
 # Entrenar el modelo con LightGBM
 model_lgb_alternative <- lgb.train(params,
@@ -181,7 +187,7 @@ print(paste("MSE:", metrics_lgb_alternative[3]))
 
 ```{r}
 
-model_tree <- train(Nota.media ~ ., data = df, method = "rpart", trControl = control, control = rpart.control(cp = 1))
+model_tree <- train(Nota.media ~ ., data = df, method = "rpart", trControl = control, control = rpart.control(cp = 0.01))
 
 RMSE <- min(model_tree$results$RMSE)
 Rsquared <- min(model_tree$results$Rsquared)
@@ -200,7 +206,7 @@ print(paste("MSE:", metrics_tree_cv[4]))
 
 ```{r}
 # Entrenar el modelo de árbol de decisión
-model_tree_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 1))
+model_tree_alternative <- train(Nota.media ~ ., data = datos_entrenamiento, method = "rpart", trControl = control, control = rpart.control(cp = 0.1))
 
 # Realizar predicciones en el conjunto de prueba
 predicciones_prueba_tree <- predict(model_tree_alternative, newdata = datos_prueba)
