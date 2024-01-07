@@ -1,0 +1,203 @@
+# Transformación
+
+## Imports necesarios
+
+```{r}
+#install.packages("caret")
+#install.packages("dplyr")
+#install.packages("magrittr")
+```
+
+```{r}
+library(dplyr)
+library(magrittr)
+library(caret)
+```
+
+## 1. Funciones auxiliares
+
+En esta sección, se han definido y desarrollado funciones personalizadas que desempeñarán un papel crucial en el proceso de transformación de datos. Estas funciones han sido diseñadas para abordar necesidades específicas, las cuales serian la generación de características, la codificación one-hot y la condificación binaria.
+
+### 1.1. Generación de características
+
+```{r}
+crear_interaccion <- function(data, columnas, nombre_interaccion, mantener_columnas_originales = FALSE) {
+  interaccion <- interaction(data %>% select(columnas), sep = "_")
+  data <- data %>%
+    mutate({{nombre_interaccion}} := interaccion)
+  
+  if (!mantener_columnas_originales) {
+    data <- data %>%
+      select(-one_of(columnas))
+  }
+  
+  return(data)
+}
+```
+
+### 1.2. Codificación One-Hot Encode
+
+```{r}
+
+one_hot_encode <- function(data, variable) {
+  
+  dummies <- dummyVars("~ .", data = data[, variable, drop = FALSE])
+
+  encoded_data <- predict(dummies, newdata = data[, variable, drop = FALSE])
+
+  encoded_df <- as.data.frame(encoded_data)
+
+  data <- data[, !grepl(variable, colnames(data))]
+
+  data <- cbind(data, encoded_df)
+
+  return(data)
+  
+}
+```
+
+### 1.3. Codificación de variables binarias
+
+```{r}
+
+binary_encode <- function(data, variable, category1, category2) {
+  # Crear una nueva columna con la codificación binaria
+  data[[variable]] <- ifelse(data[[variable]] == category1, 0, 1)
+
+  # Devolver el conjunto de datos modificado
+  return(data)
+}
+```
+
+## 2. Aplicación del proceso de transformación
+
+Lectura de los datos obtenidos tras aplicar el proceso de limpieza.
+
+```{r}
+datos = read.csv('../data/CleanData/datos_tratados.csv')
+```
+
+Modificación de la columna "Nota media" para enriquecer los datos.
+
+Con esta modificación a la columna "Nota Media", mejoramos de la calidad y la diversidad del conjunto de datos. La necesidad surgió al integrar datasets que carecían de información sobre la nota media por ámbito de estudio. En lugar de contar con datos específicos para cada ámbito, solo se disponía de notas medias por rama de estudio. Esta limitación podría generar sesgos en nuestro modelo al asignar las mismas notas medias a diferentes ámbitos.
+
+```{r}
+datos_transf <- datos %>%
+  group_by(Rama.de.enseñanza, Ámbito.de.estudio) %>%
+  mutate(Nota.media = mean(Nota.media) + rnorm(n(), mean = 0, sd = 2)) %>%
+  ungroup()
+```
+
+### 2.1 Generación de características
+
+Posibilidad de generar nuevas características, si se considera necesario.
+
+Utilizando la funcion de crear_interaccion, se exploró la posibilidad de mejorar la representación de nuestros datos mediante la generación de nuevas características. Esta estrategia tiene como objetivo enriquecer la información disponible y potenciar el rendimiento de los modelos. No obstante, es importante destacar que al aplicar codificación one-hot para ciertas variables categóricas, el número de columnas se incrementa significativamente, lo que puede tener implicaciones en términos de complejidad computacional y la interpretabilidad del modelo.
+
+```{r}
+# datos_transf <- crear_interaccion(datos_transf, c("Rama.de.enseñanza", "Ámbito.de.estudio"), Interaccion_Rama_Ambito, TRUE)
+
+# datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Sexo_Rama_Ambito, TRUE)
+```
+
+### 2.2 Normalización de los datos
+
+En esta sección, se lleva a cabo el proceso de normalización de los datos con el objetivo de asegurar que todas las variables estén en una escala uniforme. La normalización es esencial, especialmente cuando las características tienen escalas diferentes, ya que ayuda a evitar que ciertas variables dominen sobre otras en modelos sensibles a la escala.
+
+Seleccionar las columnas numericas sobre las que aplicar la normalización.
+
+```{r}
+
+columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes")]
+```
+
+Normalizar dichas columnas.
+
+```{r}
+
+datos_normalizados <- scale(columnas_numericas)
+```
+
+Agregar los datos normalizados al conjunto de datos original.
+
+```{r}
+
+datos_transf[,  c("Nota.media", "Número.de.estudiantes")] <- datos_normalizados
+```
+
+### 2.3. Escalado de los datos
+
+En esta sección, se realiza el proceso de escalado de los datos con el objetivo de ajustar las variables al rango específico [0,1]. El escalado es esencial para algoritmos que son sensibles a la magnitud de las características, permitiendo que todas las variables contribuyan de manera equitativa a la construcción del modelo.
+
+```{r}
+# Escalar los datos al rango 0-1
+escalador <- preProcess(columnas_numericas, method = c("range"))
+datos_escalados <- predict(escalador, newdata = columnas_numericas)
+
+# Agregar los datos escalados al conjunto de datos original
+datos_transf[, c("Nota.media", "Número.de.estudiantes")] <- datos_escalados
+```
+
+### 2.4 Codificación de varibles categóricas
+
+En esta sección, se lleva a cabo la codificación de variables categóricas con el objetivo de representarlas de manera numérica para su inclusión en los modelos de regresión. Se han aplicado dos técnicas específicas: codificación one-hot y codificación binaria, cada una con sus propias ventajas y consideraciones.
+
+#### 2.4.1 Codificación de variables categóricas con más de dos valores posibles
+
+```{r}
+
+# Uso de la función para codificar "Comunidad Autónoma"
+df_ciudad_encoded <- one_hot_encode(datos_transf, "Comunidad.Autónoma")
+```
+
+```{r}
+# Uso de la función para codificar "Universidad"
+df_universidad_encoded <- one_hot_encode(df_ciudad_encoded, "Universidad")
+```
+
+```{r}
+
+# Uso de la función para codificar "Campo"
+df_campo_encoded <- one_hot_encode(df_universidad_encoded, "Rama.de.enseñanza")
+```
+
+```{r}
+# Uso de la función para codificar "Carrera"
+df_carrera_encoded <- one_hot_encode(df_campo_encoded, "Ámbito.de.estudio")
+```
+
+```{r}
+# Uso de la función para codificar "Zona de nacionalidad"
+df_zona_encoded <- one_hot_encode(df_carrera_encoded, "Zona.de.nacionalidad")
+```
+
+```{r}
+##df_rama_ambito_encoded <- one_hot_encode(df_carrera_encoded, "Interaccion_Rama_Ambito")
+```
+
+```{r}
+##df_sexo_rama_ambito_encoded <- one_hot_encode(df_rama_ambito_encoded, "Interaccion_Sexo_Rama_Ambito")
+```
+
+#### 2.4.2 Codificación de variables categóricas con dos valores posibles
+
+```{r}
+# Uso de la función para codificar "Genero"
+df_genero <- binary_encode(df_zona_encoded, "Sexo", "Hombres", "Mujeres")
+```
+
+```{r}
+
+# Uso de la función para codificar "Forma de admisión"
+df_nivel <- binary_encode(df_genero, "Forma.de.admisión", "PAU", "FP")
+```
+
+## 3. Exportación de los datos transformados a un fichero CSV
+
+```{r}
+
+nombre_archivo <- "../data/CleanData/datos_transformados.csv"
+write.csv(df_nivel, file = nombre_archivo, row.names = FALSE)
+cat("Datos normalizados exportados a", nombre_archivo, "\n")
+
+```
