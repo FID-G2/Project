@@ -254,13 +254,14 @@ metricas_df_cv <- data.frame(
     as.numeric(metrics_lgb_cv[3]),
     as.numeric(metrics_lgb_cv[2]),
     0
-  )
+  ),
+  Tipo = rep("Validación cruzada", 12)
 )
 
 # Crear la gráfica
 ggplot(metricas_df_cv, aes(x = Modelo, y = valor, fill = Metrica)) +
   geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Rendimiento del Modelo en Conjunto de Pruebas",
+  labs(title = "Rendimiento del Modelo",
        y = "Valor de Métrica",
        x = "Modelo",
        fill = "Métrica") +
@@ -288,7 +289,8 @@ metricas_df_alternative <- data.frame(
     as.numeric(metrics_lgb_alternative[3]),
     as.numeric(metrics_lgb_alternative[2]),
     0
-  )
+  ),
+  Tipo = rep("Hold-out", 12)
 )
 
 # Crear la gráfica
@@ -300,6 +302,23 @@ ggplot(metricas_df_alternative, aes(x = Modelo, y = valor, fill = Metrica)) +
        fill = "Métrica") +
   theme_minimal()
 
+```
+
+#### 2.4.3. Comparación del uso de validación cruzada frente a *Hold-out*
+
+```{r}
+
+metricas_res <- rbind(metricas_df_cv, metricas_df_alternative)
+
+# Crear la gráfica
+ggplot(metricas_res, aes(x = Modelo, y = valor, fill = Tipo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Metrica) +
+  labs(title = "Rendimiento del Modelo",
+       y = "Valor de Métrica",
+       x = "Modelo",
+       fill = "Tipo") +
+  theme_minimal()
 ```
 
 ## 3. Predicción sobre modelos
