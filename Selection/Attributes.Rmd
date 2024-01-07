@@ -7,6 +7,7 @@
 #install.packages("dplyr")
 #install.packages("tidyr")
 #install.packages("randomForest")
+#install.packages("scales")
 ```
 
 ```{r}
@@ -14,6 +15,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(randomForest)
+library(scales)
 ```
 
 ## 1. Funciones auxiliares
@@ -46,6 +48,9 @@ reduce_dimensionality <- function(data, patterns, new_names) {
     N <- min(ncol(data_columns), 3)  # Limitar a un máximo de 3 componentes
     pca_columns <- pca_result$x[, 1:N]
 
+    # Normalizar los valores de PCA entre 0 y 1
+    pca_columns <- rescale(pca_columns)
+    
     new_column_names <- paste0(new_names[i], ".PCA", 1:N)
 
     data <- data[, !columns]
