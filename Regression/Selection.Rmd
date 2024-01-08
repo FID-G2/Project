@@ -196,6 +196,8 @@ get_pca_values <- function(df, df_indices) {
 }
 ```
 
+Almacenar en un dataframe todos los componentes de PCA generados, para, en el archivo Model.Rmd, poder determinar automáticamente transformación entre las variables categóricas intruducidas por el usuario, como Comunidad Autónoma, y sus PCAs asociadas.
+
 ```{r}
 
 df_PCAs = get_pca_values(df_res, df_indices)
