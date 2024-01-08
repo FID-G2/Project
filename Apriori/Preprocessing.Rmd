@@ -6,7 +6,6 @@ install.packages("readr")
 
 Abrimos los datasets
 ```{r}
-setwd("C:/Users/User/Documents/Tareas/FID/Project/Apriori")
 # Read the CSV file into a data frame
 dataset_limpio <- read.csv("dataset_integrado.csv")
 dataset_ruido_20 <- read.csv("dataset_ruido_20.csv")
