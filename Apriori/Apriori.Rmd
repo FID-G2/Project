@@ -10,7 +10,6 @@ library(arulesViz)
 
 Abrimos los datasets
 ```{r}
-setwd("C:/Users/User/Documents/Tareas/FID/Project/Apriori")
 # Read the CSV file into a data frame
 dataset_limpio <- read.csv("dataset_limpio.csv")
 dataset_filtrado <- read.csv("dataset_filtrado.csv")
