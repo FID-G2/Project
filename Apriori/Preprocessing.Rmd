@@ -1,0 +1,331 @@
+```{r}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("readr")
+```
+
+Abrimos los datasets
+```{r}
+setwd("C:/Users/User/Documents/Tareas/FID/Project/Apriori")
+# Read the CSV file into a data frame
+dataset_limpio <- read.csv("dataset_integrado.csv")
+dataset_ruido_20 <- read.csv("dataset_ruido_20.csv")
+```
+
+Queremos construir una relación entre el sexo de los estudiantes y la rama de enseñanza a la que acceden, en función de la comunidad autónoma a la que pertenecen.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+agg_dataset_limpio <- dataset_limpio %>%
+  group_by(Comunidad.Autónoma, Sexo, Rama.de.enseñanza) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes))
+
+# Sabiendo que hay ruido, vamos a operar asumiendo que existen NAs en el número de estudiantes. Haremos un plot eliminando los NAs y otro haciendo una media de ellos
+agg_dataset_ruido_20_sin_na <- dataset_ruido_20 %>%
+  group_by(Comunidad.Autónoma, Sexo, Rama.de.enseñanza) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes, na.rm = TRUE))
+
+agg_dataset_ruido_20_media_numero <- dataset_ruido_20 %>%
+  group_by(Comunidad.Autónoma, Sexo, Rama.de.enseñanza) %>%
+  mutate(Número.de.estudiantes = ifelse(is.na(Número.de.estudiantes), mean(Número.de.estudiantes, na.rm = TRUE), Número.de.estudiantes)) %>%
+  ungroup()
+agg_dataset_ruido_20_media_numero <- agg_dataset_ruido_20_media_numero %>%
+  group_by(Comunidad.Autónoma, Sexo, Rama.de.enseñanza) %>%
+  summarise(Número.de.estudiantes = sum(Número.de.estudiantes, na.rm = TRUE))
+
+plot_limpio <- ggplot(agg_dataset_limpio, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
+  theme_minimal()
+
+plot_ruido_20_sin_na <- ggplot(agg_dataset_ruido_20_sin_na, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
+  theme_minimal()
+
+plot_ruido_20_media_numero <- ggplot(agg_dataset_ruido_20_media_numero, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green")) +
+  theme_minimal()
+
+
+subseleccion_cas <- c("Andalucía", "Cataluña", "Extremadura", "Madrid", "Valencia")
+
+dataset_limpio_subseleccion_cas <- agg_dataset_limpio[agg_dataset_limpio$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+dataset_ruido_20_sin_na_subseleccion_cas <- agg_dataset_ruido_20_sin_na[agg_dataset_ruido_20_sin_na$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+dataset_ruido_20_media_numero_subseleccion_cas <- agg_dataset_ruido_20_media_numero[agg_dataset_ruido_20_media_numero$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+plot_limpio_cas <- ggplot(dataset_limpio_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+plot_ruido_20_sin_na_cas <- ggplot(dataset_ruido_20_sin_na_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+plot_ruido_20_media_numero_cas <- ggplot(dataset_ruido_20_media_numero_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+print(plot_limpio)
+print(plot_ruido_20_sin_na)
+print(plot_ruido_20_media_numero)
+
+print(plot_limpio_cas)
+print(plot_ruido_20_sin_na_cas)
+print(plot_ruido_20_media_numero_cas)
+```
+
+Podemos ver claramente cómo el ruido puede afectar a nuestro estudio. 
+Nuestros atributos son: 
+1.- Comunidad autónoma
+2.- Universidad
+3.- Curso
+4.- Sexo
+5.- Forma de admisión
+6.- Rama de enseñanza,
+7.- Nota media
+8.- Ámbito de estudio
+9.- Zona de nacionalidad 
+10.- Número de estudiantes
+
+Nuestro preprocesamiento constará de los siguientes pasos:
+1.- Selección de atributos: Eliminar columnas innecesarias. Es decir, todas menos comunidad autónoma, sexo, rama de enseñanza y número de estudiantes
+2.- Transformación: Discretizar el sexo, de tal forma que tenemos 0 para hombres, 1 para mujeres y 2 para todo lo demás (ruido)
+3.- Limpieza: Contar cuántas filas tenemos aún con ruido, ver lo representativo que es el ruido y determinar qué hacer con él
+4.- Transformación: Unificar todas las filas que tengan mismo sexo y rama de enseñanza
+
+Selección de atributos
+```{r}
+seleccion_dataset_limpio <- dataset_limpio[, c("Comunidad.Autónoma", "Sexo", "Rama.de.enseñanza", "Número.de.estudiantes")]
+
+seleccion_dataset_ruido_20 <- dataset_ruido_20[, c("Comunidad.Autónoma", "Sexo", "Rama.de.enseñanza", "Número.de.estudiantes")]
+```
+
+Transformación
+```{r}
+library(dplyr)
+
+# Discretización del sexo
+seleccion_dataset_limpio <- seleccion_dataset_limpio %>%
+  mutate(Sexo = case_when(
+    Sexo == "Hombres" ~ 0,
+    Sexo == "Mujeres" ~ 1,
+    TRUE ~ 2
+  ))
+
+seleccion_dataset_ruido_20 <- seleccion_dataset_ruido_20 %>%
+  mutate(Sexo = case_when(
+    Sexo == "Hombres" ~ 0,
+    Sexo == "Mujeres" ~ 1,
+    TRUE ~ 2
+  ))
+```
+
+Limpieza
+```{r}
+# Inspeccionamos el ruido del dataset con ruido
+
+# Contamos celdas con NA
+missing_values <- apply(seleccion_dataset_ruido_20, 2, function(x) sum(is.na(x)))
+
+# Vemos que sólo hay NAs en la tercera columna, es decir, el número de estudiantes
+
+# Habiendo visto que las ramas de enseñanza eran las correctas en la visualización que hicimos antes, podemos asumir que no habrá ruido (identificable) ahí
+
+# Sabemos que existen nuevas cadenas de texto en la columna de sexo, por eso lo hemos identificado como "2". Vamos a contar la cantidad de hombres, mujeres y ruido hay en total
+value_counts <- table(seleccion_dataset_ruido_20$Sexo)
+
+# Tenemos la misma cantidad de sexo con ruido que NAs. ¿Es posible que las filas coincidan?
+all_noise_rows <- all(seleccion_dataset_ruido_20$Sexo == 2 & is.na(seleccion_dataset_ruido_20$Número.de.estudiantes) | seleccion_dataset_ruido_20$Sexo != 2 & !is.na(seleccion_dataset_ruido_20$Número.de.estudiantes))
+
+#Parece que no coinciden, por lo que el ruido no tiene por qué ser en las mismas filas. De todas formas, vamos a ver cuántas filas tienen ambos ruidos
+
+overlap_count <- sum(seleccion_dataset_ruido_20$Sexo == 2 & is.na(seleccion_dataset_ruido_20$Número.de.estudiantes))
+
+# 6738 filas cuentan con ambos ruidos. 33851 filas tienen ruido NA, y el mismo número tiene ruido de sexo, donde 6738 de ellas coinciden. El total de datos es 169257 filas. Vamos a calcular el número total de ruido real y ver su proporción real sobre nuestro conjunto de datos
+
+total_rows <- 169257
+noise_type1 <- 33851
+noise_type2 <- 33851
+overlap <- 6738
+
+total_with_noise <- noise_type1 + noise_type2 - overlap
+percentage_with_noise <- (total_with_noise / total_rows) * 100
+
+# Un 36% de los datos tienen ruido. Dado el tamaño de nuestro dataset, eliminar estos datos no debería tener un impacto en la proporción final de nuestro análisis, pero vamos a proceder haciendo dos datasets nuevos: uno con los datos eliminados, y otro con los datos modificados
+
+filtro_seleccion_dataset_ruido_20 <- seleccion_dataset_ruido_20[!(seleccion_dataset_ruido_20$Sexo == 2 | is.na(seleccion_dataset_ruido_20$Número.de.estudiantes)), ]
+
+modificado_seleccion_dataset_ruido_20 <- seleccion_dataset_ruido_20 %>%
+  mutate(Número.de.estudiantes = ifelse(is.na(Número.de.estudiantes), mean(Número.de.estudiantes, na.rm = TRUE), Número.de.estudiantes))
+# En el dataset modificado conservamos las filas que tengan sexo desconocido. Lo representaremos luego como "Desconocido"
+
+# Verificamos que los nuevos datasets no tengan ruido
+missing_values_filtered <- apply(filtro_seleccion_dataset_ruido_20, 2, function(x) sum(is.na(x)))
+value_counts_filtered <- table(filtro_seleccion_dataset_ruido_20$Sexo)
+
+missing_values_modified <- apply(modificado_seleccion_dataset_ruido_20, 2, function(x) sum(is.na(x)))
+value_counts_modified <- table(modificado_seleccion_dataset_ruido_20$Sexo)
+
+# Hemos eliminado correctamente el ruido de nuestro dataset
+
+
+
+# Verificamos que el dataset limpio realmente está limpio
+missing_values_clean <- apply(seleccion_dataset_limpio, 2, function(x) sum(is.na(x)))
+value_counts_clean <- table(seleccion_dataset_limpio$Sexo)
+```
+
+Transformación
+```{r}
+# Unificación de filas
+seleccion_dataset_limpio <- aggregate(Número.de.estudiantes ~ Comunidad.Autónoma + Sexo + Rama.de.enseñanza, data = seleccion_dataset_limpio, sum)
+
+filtro_seleccion_dataset_ruido_20 <- aggregate(Número.de.estudiantes ~ Comunidad.Autónoma + Sexo + Rama.de.enseñanza, data = filtro_seleccion_dataset_ruido_20, sum)
+
+modificado_seleccion_dataset_ruido_20 <- aggregate(Número.de.estudiantes ~ Comunidad.Autónoma + Sexo + Rama.de.enseñanza, data = modificado_seleccion_dataset_ruido_20, sum)
+```
+
+Volvemos a representar gráficamente nuestros datasets.
+```{r}
+library(ggplot2)
+
+# Convertimos el valor de Sexo a categórico para una mejor representación
+
+
+vis_seleccion_dataset_limpio <- seleccion_dataset_limpio %>%
+  mutate(Sexo = case_when(
+    Sexo == 0 ~ "Hombres",
+    Sexo == 1 ~ "Mujeres",
+    Sexo == 2 ~ "Desconocido",
+  ))
+
+vis_filtro_seleccion_dataset_ruido_20 <- filtro_seleccion_dataset_ruido_20 %>%
+  mutate(Sexo = case_when(
+    Sexo == 0 ~ "Hombres",
+    Sexo == 1 ~ "Mujeres",
+    Sexo == 2 ~ "Desconocido",
+  ))
+
+vis_modificado_seleccion_dataset_ruido_20 <- modificado_seleccion_dataset_ruido_20 %>%
+  mutate(Sexo = case_when(
+    Sexo == 0 ~ "Hombres",
+    Sexo == 1 ~ "Mujeres",
+    Sexo == 2 ~ "Desconocido",
+  ))
+
+plot_limpio <- ggplot(vis_seleccion_dataset_limpio, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
+  theme_minimal()
+
+plot_ruido_filtro <- ggplot(vis_filtro_seleccion_dataset_ruido_20, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
+  theme_minimal()
+
+plot_ruido_modificado <- ggplot(vis_modificado_seleccion_dataset_ruido_20, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Sexo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de sexo dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes") +
+  scale_fill_manual(values = c("Hombres" = "purple", "Mujeres" = "pink", "amarillo" = "yellow", "azul" = "blue", "naranja" = "orange", "rojo" = "red", "verde" = "green", "Desconocido" = "grey")) +
+  theme_minimal()
+
+print(plot_limpio)
+print(plot_ruido_filtro)
+print(plot_ruido_modificado)
+
+
+subseleccion_cas <- c("Andalucía", "Cataluña", "Extremadura", "Madrid", "Valencia")
+
+dataset_limpio_subseleccion_cas <- vis_seleccion_dataset_limpio[vis_seleccion_dataset_limpio$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+dataset_ruido_20_sin_na_subseleccion_cas <- vis_filtro_seleccion_dataset_ruido_20[vis_filtro_seleccion_dataset_ruido_20$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+dataset_ruido_20_media_numero_subseleccion_cas <- vis_modificado_seleccion_dataset_ruido_20[vis_modificado_seleccion_dataset_ruido_20$Comunidad.Autónoma %in% subseleccion_cas, ]
+
+plot_limpio_cas <- ggplot(dataset_limpio_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+plot_ruido_20_sin_na_cas <- ggplot(dataset_ruido_20_sin_na_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+plot_ruido_20_media_numero_cas <- ggplot(dataset_ruido_20_media_numero_subseleccion_cas, aes(x = Rama.de.enseñanza, y = Número.de.estudiantes, fill = Comunidad.Autónoma)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribución de comunidad autónoma dentro de una rama del conocimiento",
+       x = "Rama del conocimiento",
+       y = "Cantidad de estudiantes",
+       fill = "Comunidad autónoma") +
+  scale_fill_manual(values = c("Andalucía" = "green", "Cataluña" = "purple", "Extremadura" = "brown", "Madrid" = "blue", "Valencia" = "orange")) +
+  theme_minimal()
+
+print(plot_limpio_cas)
+print(plot_ruido_20_sin_na_cas)
+print(plot_ruido_20_media_numero_cas)
+
+# Podemos ver que la proporción se mantiene en el dataset filtrado, mientras que el impacto de mantener un valor desconocido para "Sexo" es realmente impactante. Aun así, procederemos con el análisis de ambos datasets con ruido, para poder ver cómo se refleja en los resultados finales
+```
+
+
+Exportamos los datasets para poder trabajar con ellos en la siguiente fase en otro código
+```{r}
+library(readr)
+
+clean_extraction_path <- "dataset_limpio.csv"
+filtered_extraction_path <- "dataset_filtrado.csv"
+modified_extraction_path <- "dataset_modificado.csv"
+
+readr::write_excel_csv(seleccion_dataset_limpio, file = clean_extraction_path)
+readr::write_excel_csv(filtro_seleccion_dataset_ruido_20, file = filtered_extraction_path)
+readr::write_excel_csv(modificado_seleccion_dataset_ruido_20, file = modified_extraction_path)
+
+print("Dataset exported!")
+```
