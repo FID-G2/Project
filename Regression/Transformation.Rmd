@@ -100,18 +100,18 @@ Utilizando la funcion de crear_interaccion, se exploró la posibilidad de mejora
 # datos_transf <- crear_interaccion(datos_transf, c("Sexo", "Ámbito.de.estudio","Rama.de.enseñanza"), Interaccion_Sexo_Rama_Ambito, TRUE)
 ```
 
-### 2.2 Normalización de los datos
+### 2.2 Escalado de los datos
 
-En esta sección, se lleva a cabo el proceso de normalización de los datos con el objetivo de asegurar que todas las variables estén en una escala uniforme. La normalización es esencial, especialmente cuando las características tienen escalas diferentes, ya que ayuda a evitar que ciertas variables dominen sobre otras en modelos sensibles a la escala.
+En esta sección, se lleva a cabo el proceso de escalado de los datos con el objetivo de asegurar que todas las variables estén en una escala uniforme. El escalado es esencial, especialmente cuando las características tienen escalas diferentes, ya que ayuda a evitar que ciertas variables dominen sobre otras en modelos sensibles a la escala.
 
-Seleccionar las columnas numericas sobre las que aplicar la normalización.
+Seleccionar las columnas numericas sobre las que aplicar el escalado.
 
 ```{r}
 
 columnas_numericas <- datos_transf[, c("Nota.media", "Número.de.estudiantes")]
 ```
 
-Normalizar dichas columnas.
+Escalar dichas columnas.
 
 ```{r}
 

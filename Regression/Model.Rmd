@@ -31,6 +31,8 @@ control <- trainControl(method = "cv", number = 20)
 
 ## 2. Modelos
 
+Es importante destacar que el error que devuelven los modelos se encuentra entre 0 y 1 porque la columna de Nota media fue escalada.
+
 ```{r}
 #Código reutilizable
 # Dividir el conjunto de datos en entrenamiento y prueba (80-20)
@@ -834,6 +836,16 @@ head(df_prediccion)
 
 ### 3.5. Predicciones sobre modelos entrenados con validación cruzada
 
+Dado que la nota media se escaló es necesario multiplicar el resultado de las predicciones por la mayor nota media que aparecía en el dataset.
+
+```{r}
+
+datos_tratados = read.csv('../data/CleanData/datos_tratados.csv')
+max_nota_media <- max(datos$Nota.media)
+
+print(max_nota_media)
+```
+
 #### 3.5.1. Predicciones sobre Random Forest
 
 ```{r}
@@ -841,7 +853,7 @@ head(df_prediccion)
 predicciones <- predict(model_rf_200, newdata = df_prediccion)
 
 # Imprimir las predicciones
-print(predicciones[1]*14)
+print(predicciones[1]*max_nota_media)
 ```
 
 #### 3.5.2. Predicciones sobre Decision Tree
@@ -851,7 +863,7 @@ print(predicciones[1]*14)
 predicciones <- predict(model_tree_050, newdata = df_prediccion)
 
 # Imprimir las predicciones
-print(predicciones[1]*14)
+print(predicciones[1]*max_nota_media)
 ```
 
 ### 3.6. Predicciones sobre modelos entrenados con partición de datos 80/20
@@ -863,7 +875,7 @@ print(predicciones[1]*14)
 predicciones <- predict(model_rf_200_alternative, newdata = df_prediccion)
 
 # Imprimir las predicciones
-print(predicciones[1]*14)
+print(predicciones[1]*max_nota_media)
 ```
 
 #### 3.6.2. Predicciones sobre Decision Tree
@@ -873,7 +885,7 @@ print(predicciones[1]*14)
 predicciones <- predict(model_tree_050_alternative, newdata = df_prediccion)
 
 # Imprimir las predicciones
-print(predicciones[1]*14)
+print(predicciones[1]*max_nota_media)
 
 ```
 
@@ -885,5 +897,5 @@ data_prediction <- as.matrix(df_prediccion)
 predicciones <- predict(model_lgb_010_alternative, data_prediction)
 
 
-print(predicciones[1]*14)
+print(predicciones[1]*max_nota_media)
 ```
