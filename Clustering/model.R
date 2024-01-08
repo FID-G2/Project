@@ -1,5 +1,3 @@
-setwd("C:/Users/David/Desktop/WD FID/Project/Clustering/")
-
 datos_ruido <- read.csv("../Add-noise/dataset_ruido_5.csv")
 
 # Instalar y cargar el paquete dplyr si aún no lo has hecho
