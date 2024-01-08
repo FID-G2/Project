@@ -45,6 +45,8 @@ datos_prueba <- df[-index_entrenamiento, ]
 
 #### 2.1.1. Entrenamiento con validación cruzada
 
+**Aclaración**: No se utiliza la búsqueda por rejilla de caret debido a que en varios experimentos hemos sufrido interrupciones de la ejecución debido a limitaciones de memoria RAM de nuestros equipos.
+
 ```{r}
 
 # 10 árboles
@@ -99,6 +101,8 @@ print(paste("MSE:", metrics_rf_200_cv[4]))
 ```
 
 #### 2.1.2. Entrenamiento con 80% de los datos y 20% para test
+
+**Aclaración**: No se utiliza la búsqueda por rejilla de caret debido a que en varios experimentos hemos sufrido interrupciones de la ejecución debido a limitaciones de memoria RAM de nuestros equipos.
 
 ```{r}
 # 10 árboles
@@ -431,6 +435,8 @@ print(paste("MSE:", metrics_lgb_010_alternative[3]))
 
 #### 2.3.1. Entrenamiento de Decision Tree con validación cruzada
 
+**Aclaración**: No se utiliza la búsqueda por rejilla de caret debido a que en varios experimentos hemos sufrido interrupciones de la ejecución debido a limitaciones de memoria RAM de nuestros equipos.
+
 ```{r}
 
 # cp = 0.1
@@ -489,6 +495,8 @@ print(paste("MSE:", metrics_tree_050_cv[4]))
 ```
 
 #### 2.3.2. Entrenamiento de Decision Tree con 80% de los datos para entrenamiento y 20% para test
+
+**Aclaración**: No se utiliza la búsqueda por rejilla de caret debido a que en varios experimentos hemos sufrido interrupciones de la ejecución debido a limitaciones de memoria RAM de nuestros equipos.
 
 ```{r}
 
