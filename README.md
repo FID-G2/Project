@@ -14,6 +14,10 @@ Contiene funciones esenciales para llevar a cabo la adición de ruido al dataset
 
 Incluye los archivos necesarios para realizar el preprocesamiento y la construcción del modelo *Apriori*.
 
+### 2. Clustering
+
+Incluye los archivos necesarios para realizar el preprocesamiento y la construcción del algoritmo K-Means y la agrupación por clusters.
+
 ### 3. Data
 
 - FirstData: Contiene los datos iniciales descargados desde la plataforma del Ministerio de Universidades.
