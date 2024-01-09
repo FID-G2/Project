@@ -1,0 +1,908 @@
+# Visualización
+
+## Imports necesarios
+
+```{r}
+#install.packages("ggplot2")
+#install.packages("scales")
+#install.packages("dplyr")
+#install.packages("pheatmap")
+#install.packages("tidyr")
+#install.packages("corrplot")
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(pheatmap)
+library(tidyr)
+library(corrplot)
+```
+
+## 1. Lectura de datos
+
+```{r}
+
+data = read.csv('../2. Add-noise/dataset_ruido.csv')
+```
+
+## 2. Agrupamiento de los datos
+
+```{r}
+
+data = data %>% drop_na()
+data2 = data %>% group_by(`Comunidad.Autónoma`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data3 = data %>% group_by(`Universidad`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data4 = data %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data5 = data %>% filter(Sexo == "Hombres") %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data6 = data %>% filter(Sexo == "Mujeres") %>% group_by(`Curso`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data7 = data %>% group_by(`Forma.de.admisión`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data8 = data %>% group_by(`Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data9 = data %>% group_by(`Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data10 = data %>% group_by(`Zona.de.nacionalidad`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data11 = data %>% group_by(`Comunidad.Autónoma`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data12 = data %>% group_by(`Universidad`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data13 = data %>% group_by(`Rama.de.enseñanza`, `Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data14 = data %>% group_by(`Forma.de.admisión`, `Rama.de.enseñanza`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data15 = data %>% group_by(`Forma.de.admisión`, `Ámbito.de.estudio`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data16 = data %>% group_by(`Rama.de.enseñanza`, `Curso`) %>% summarise(num_estudiantes = sum(`Número.de.estudiantes`))
+data17 = data %>% group_by(`Rama.de.enseñanza`, `Sexo`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+data18 = data %>% group_by(`Forma.de.admisión`, `Sexo`) %>% summarise(nota_media = mean(Nota.media, na.rm = TRUE))
+```
+
+## 3. Gráficos de barras
+
+### 3.1. Funciones auxiliares
+
+```{r}
+crear_grafico_barras <- function(data, x_var, title){
+  ggplot(data, aes(x = !!sym(x_var))) +
+    geom_bar(fill = "skyblue") +
+    labs(title = title, x = x_var, y = "Frecuencia") + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Función para crear gráfico de barras apiladas
+crear_grafico_barras_apiladas <- function(data, x_var, y_var, fill_var, title){
+  ggplot(data, aes(x = !!sym(x_var), y = !!sym(y_var), fill = !!sym(fill_var))) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = title, x = x_var, y = y_var) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+### 3.2. Visualizaciones
+
+#### 3.2.1. Frecuencias de las variables
+
+```{r}
+grafico_comunidad_autonoma <- crear_grafico_barras(data, "Comunidad.Autónoma", "Frecuencia por Comunidad Autónoma")
+grafico_universidad <- crear_grafico_barras(data, "Universidad", "Frecuencia por Universidad")
+grafico_curso <- crear_grafico_barras(data, "Curso", "Frecuencia por Curso")
+grafico_sexo <- crear_grafico_barras(data, "Sexo", "Frecuencia por Sexo")
+grafico_forma_admision <- crear_grafico_barras(data, "Forma.de.admisión", "Frecuencia por Forma de admisión")
+grafico_rama_ensenanza <- crear_grafico_barras(data, "Rama.de.enseñanza", "Frecuencia por Rama de enseñanza")
+grafico_ambito_estudio <- crear_grafico_barras(data, "Ámbito.de.estudio", "Frecuencia por Ámbito de estudio")
+grafico_zona_nacionalidad <- crear_grafico_barras(data, "Zona.de.nacionalidad", "Frecuencia por Zona de nacionalidad")
+
+grafico_comunidad_autonoma
+grafico_universidad
+grafico_curso
+grafico_sexo
+grafico_forma_admision
+grafico_rama_ensenanza
+grafico_ambito_estudio
+grafico_zona_nacionalidad
+```
+
+#### 3.2.2. Notas medias por variables
+
+```{r}
+
+grafico_notas_comunidad_autonoma <- crear_grafico_barras_apiladas(data2, "Comunidad.Autónoma", "nota_media", "", "Nota Media por Comunidad Autónoma")
+grafico_notas_universidad <- crear_grafico_barras_apiladas(data3, "Universidad", "nota_media", "", "Nota Media por Universidad")
+grafico_notas_curso <- crear_grafico_barras_apiladas(data4, "Curso", "nota_media", "", "Nota Media por Curso")
+grafico_notas_forma_admision <- crear_grafico_barras_apiladas(data7, "Forma.de.admisión", "nota_media", "", "Nota Media por Forma de admisión")
+grafico_notas_rama_ensenanza <- crear_grafico_barras_apiladas(data8, "Rama.de.enseñanza", "nota_media", "", "Nota Media por Rama de enseñanza")
+grafico_notas_ambito_estudio <- crear_grafico_barras_apiladas(data9, "Ámbito.de.estudio", "nota_media", "", "Nota Media por Ámbito de estudio")
+grafico_notas_zona_nacionalidad <- crear_grafico_barras_apiladas(data10, "Zona.de.nacionalidad", "nota_media", "", "Nota Media por Zona de nacionalidad")
+grafico_notas_curso_hombres <- crear_grafico_barras_apiladas(data5, "Curso", "nota_media", "", "Nota Media por Curso de Hombres")
+grafico_notas_curso_mujeres <-crear_grafico_barras_apiladas(data6, "Curso","nota_media","", "Nota Media por Curso de Mujeres")
+
+grafico_notas_comunidad_autonoma
+grafico_notas_universidad
+grafico_notas_curso
+grafico_notas_forma_admision
+grafico_notas_rama_ensenanza
+grafico_notas_ambito_estudio
+grafico_notas_zona_nacionalidad
+grafico_notas_curso_mujeres
+grafico_notas_curso_hombres
+```
+
+#### 3.2.2. Relación de nota media en función del valor de dos variables
+
+```{r}
+grafico_notas_comunidad_ambito <- crear_grafico_barras_apiladas(data11, "Comunidad.Autónoma", "nota_media", "Rama.de.enseñanza", "Nota Media por Comunidad Autónoma y Rama de enseñanza")
+
+grafico_notas_universidad_ambito <- crear_grafico_barras_apiladas(data12, "Universidad", "nota_media", "Rama.de.enseñanza", "Nota Media por Universidad y Rama de enseñanza")
+
+grafico_notas_rama_ambito <- crear_grafico_barras_apiladas(data13, "Rama.de.enseñanza", "nota_media", "Ámbito.de.estudio", "Nota Media por Rama de enseñanza y Ámbito de estudio")
+
+grafico_notas_forma_rama <- crear_grafico_barras_apiladas(data14, "Forma.de.admisión", "nota_media", "Rama.de.enseñanza", "Nota Media por Forma de admisión y Rama de enseñanza")
+
+grafico_notas_forma_ambito <- crear_grafico_barras_apiladas(data15, "Forma.de.admisión", "nota_media", "Ámbito.de.estudio", "Nota Media por Forma de admisión y Ámbito de estudio")
+
+grafico_notas_comunidad_ambito
+grafico_notas_universidad_ambito
+grafico_notas_rama_ambito
+grafico_notas_forma_rama
+grafico_notas_forma_ambito
+```
+
+#### 3.2.3. Número de estuadiantes por curso
+
+```{r}
+ggplot(data = data, aes(x = `Curso`, y = `Número.de.estudiantes`), fill = 'Curso') +
+  geom_bar(stat = "summary", fun = "sum") +
+  scale_y_continuous(labels = comma_format()) + 
+  labs(title = "Suma de Número de Estudiantes por Curso") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 4. Box plots
+
+#### 4.1. Box plot de la nota media
+
+```{r}
+
+ggplot(data, aes(x = "", y = Nota.media)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Box plot de la Nota Media") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+#### 4.2. Box plot de Número de Estudiantes por Rama de enseñanza y Curso
+
+```{r}
+#boxplot de numero de estudiantes por rama de enseñanza y curso
+ggplot(data16, aes(x = `Rama.de.enseñanza`, y = num_estudiantes)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Box plost de Número de Estudiantes por Rama de enseñanza y Curso") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#SIN QUITAR LOS NA NO FUNCIONA
+```
+
+## 5. Heatmaps
+
+### 5.1. Heatmap de la Nota Media por Rama de enseñanza y Sexo
+
+```{r}
+ggplot(data17, aes(x = `Rama.de.enseñanza`, y = Sexo, fill = nota_media)) +
+  geom_tile() +
+  labs(title = "Heatmap de la Nota Media por Rama de enseñanza y Sexo") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### 5.2. Heatmap de la Nota Media por Forma de admisión y Sexo
+
+```{r}
+ggplot(data18, aes(x = `Forma.de.admisión`, y = Sexo, fill = nota_media)) +
+  geom_tile() +
+  labs(title = "Heatmap de la Nota Media por Forma de admisión y Sexo") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 6. Histogramas
+
+### 6.1. Funciones auxiliares
+
+```{r}
+# Definir la función para crear histogramas de nota por carrera
+crear_histograma <- function(datos, campo, nombre_campo) {
+  # Filtra los datos para la carrera específica
+  datos_filtrados <- datos %>% filter({{nombre_campo}} == campo)
+  
+  # Crea el histograma
+  ggplot(datos_filtrados, aes(x = Nota.media)) +
+    geom_histogram(binwidth = 0.5, fill = "blue", color = "black", alpha = 0.7) +
+    labs(title = paste("Histograma de notas medias de", campo),
+         x = "Nota media",
+         y = "Frecuencia") +
+    theme_minimal()
+}
+```
+
+### 6.2. Visualizaciones
+
+#### 6.2.1. Histogramas de nota media por ramas de enseñanza
+
+```{r}
+
+ramas_distintas <- unique(data$Rama.de.enseñanza)
+
+for (rama in ramas_distintas) {
+  histograma <- crear_histograma(data, rama, Rama.de.enseñanza)
+  print(histograma)
+}
+```
+
+#### 6.2.2. Histogramas de nota media por formas de admisión
+
+```{r}
+
+formas_admision_distintas <- unique(data$Forma.de.admisión)
+
+for (forma_admision in formas_admision_distintas) {
+  histograma <- crear_histograma(data, forma_admision, Forma.de.admisión)
+  print(histograma)
+}
+```
+
+#### 6.2.3.Distribución de la variable "Nota media"
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`)) +
+  geom_histogram(binwidth = 0.5) +
+  labs(title = "Distribución de la variable Nota media")
+```
+
+#### 6.2.4. Distribución de la variable "Número de estudiantes"
+
+```{r}
+
+ggplot(data, aes(x = `Número.de.estudiantes`)) +
+  geom_histogram(binwidth = 100) +
+  labs(title = "Distribución de la variable Número de estudiantes")
+```
+
+#### 6.2.5. Distribución de la variable "Nota media" por comunidad autónoma
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`, fill = `Comunidad.Autónoma`)) +
+  geom_histogram(binwidth = 0.5) +
+  labs(title = "Distribución de la variable Nota media por comunidad autónoma")
+```
+
+#### 6.2.6. Distribución de la variable "Número de estudiantes" por comunidad autónoma
+
+```{r}
+
+ggplot(data, aes(x = `Número.de.estudiantes`, fill = `Comunidad.Autónoma`)) +
+  geom_histogram(binwidth = 100) +
+  labs(title = "Distribución de la variable Número de estudiantes por comunidad autónoma")
+```
+
+#### 6.2.7. Distribución de la variable "Nota media" por universidad
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`, fill = Universidad)) +
+  geom_histogram(binwidth = 0.5) +
+  labs(title = "Distribución de la variable Nota media por universidad")
+```
+
+#### 6.2.8. Distribución de la variable "Número de estudiantes" por universidad
+
+```{r}
+
+ggplot(data, aes(x = `Número.de.estudiantes`, fill = Universidad)) +
+  geom_histogram(binwidth = 100) +
+  labs(title = "Distribución de la variable Número de estudiantes por universidad")
+```
+
+#### 6.2.9. Distribución de la variable "Nota media" por sexo
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`, fill = Sexo)) +
+  geom_histogram(binwidth = 0.5) +
+  labs(title = "Distribución de la variable Nota media por sexo")
+```
+
+#### 6.2.10. Distribución de la variable "Número de estudiantes" por sexo
+
+```{r}
+
+ggplot(data, aes(x = `Número.de.estudiantes`, fill = Sexo)) +
+  geom_histogram(binwidth = 100) +
+  labs(title = "Distribución de la variable Número de estudiantes por sexo")
+```
+
+#### 6.2.11. Distribución de la variable "Nota media" por comunidad autónoma y universidad
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`, fill = `Comunidad.Autónoma`)) +
+  geom_histogram(binwidth = 0.5) +
+  facet_wrap(~Universidad) +
+  labs(title = "Distribución de la variable Nota media por comunidad autónoma y universidad")
+```
+
+#### 6.2.12. Distribución de la variable "Número de estudiantes" por comunidad autónoma y universidad
+
+```{r}
+
+ggplot(data, aes(x = `Número.de.estudiantes`, fill = `Comunidad.Autónoma`)) +
+  geom_histogram(binwidth = 100) +
+  facet_wrap(~Universidad) +
+  labs(title = "Distribución de la variable Número de estudiantes por comunidad autónoma y universidad")
+```
+
+#### 6.2.13. Distribución de la variable "Nota media" por comunidad autónoma y sexo
+
+```{r}
+
+ggplot(data, aes(x = `Nota.media`, fill = `Comunidad.Autónoma`)) +
+  geom_histogram(binwidth = 0.5) +
+  facet_wrap(~Sexo) +
+  labs(title = "Distribución de la variable Nota media por comunidad autónoma y sexo")
+```
+
+## 7. Diagramas de dispersión
+
+### 7.1. Funciones auxiliares
+
+```{r}
+
+# Definir la función para crear diagramas de dispersión por campo, año y género
+crear_diagrama_dispersion <- function(datos, campo, nombre_campo) {
+  # Filtrar los datos para el campo específico
+  datos_filtrados <- datos %>% filter({{nombre_campo}} == campo)
+  
+  # Crear el diagrama de dispersión
+  ggplot(datos_filtrados, aes(x = Curso, y = Nota.media, color = Sexo)) +
+    geom_point() +
+    labs(title = paste("Diagrama de dispersión de notas medias por año y género en", campo),
+         x = "Año",
+         y = "Nota") +
+    theme_minimal()
+}
+```
+
+### 7.2. Visualizaciones
+
+#### 7.2.1. Diagramas de dispersión de notas medias por año y género en cada rama de enseñanza
+
+```{r}
+
+ramas_distintas <- unique(data$Rama.de.enseñanza)
+
+for (rama in ramas_distintas) {
+  diagrama_dispersion <- crear_diagrama_dispersion(data, rama, Rama.de.enseñanza)
+  print(diagrama_dispersion)
+}
+```
+
+#### 7.2.1. Diagramas de dispersión de notas medias por año y género en cada forma de admisión
+
+```{r}
+
+formas_admision_distintas <- unique(data$Forma.de.admisión)
+
+for (forma_admision in formas_admision_distintas) {
+  diagrama_dispersion <- crear_diagrama_dispersion(data, forma_admision, Forma.de.admisión)
+  print(diagrama_dispersion)
+}
+```
+
+## 8. Diagramas de violín
+
+### 8.1. Funciones auxiliares
+
+```{r}
+
+# Definir la función para crear diagramas de violín por campo, año y género
+crear_diagrama_violin <- function(datos, campo, nombre_campo) {
+  # Filtrar los datos para el campo específico
+  datos_filtrados <- datos %>% filter({{nombre_campo}} == campo)
+  
+  # Crear el diagrama de violín
+  ggplot(datos_filtrados, aes(x = Curso, y = Nota.media, fill = Sexo)) +
+    geom_violin(trim = FALSE) +
+    labs(title = paste("Diagrama de violín de notas medias por año y género en", campo),
+         x = "Año",
+         y = "Nota") +
+    theme_minimal()
+}
+```
+
+### 8.2. Visualizaciones
+
+#### 8.2.1. Diagramas de violín de notas medias por año y género en cada rama de enseñanza
+
+```{r}
+
+ramas_distintas <- unique(data$Rama.de.enseñanza)
+
+for (rama in ramas_distintas) {
+  diagrama_violin <- crear_diagrama_violin(data, rama, Rama.de.enseñanza)
+  print(diagrama_violin)
+}
+```
+
+#### 8.2.2. Diagramas de violín de notas medias por año y género en cada forma de admisión
+
+```{r}
+
+formas_admision_distintas <- unique(data$Forma.de.admisión)
+
+for (forma_admision in formas_admision_distintas) {
+  diagrama_violin <- crear_diagrama_violin(data, forma_admision, Forma.de.admisión)
+  print(diagrama_violin)
+}
+```
+
+## 9. Pie charts
+
+### 9.1. Tratamiento previo
+
+```{r}
+
+# Hay muchos numeros de estudiantes que son 0, estas gráficas no son muy útiles
+datos_limpios <- data[complete.cases(data$`Número.de.estudiantes`), ]
+
+
+#Eliminar filas con numeros de estudiantes 0
+data <- data[complete.cases(data$`Número.de.estudiantes`), ]
+
+# Verificar si hay algún 0 en la variable 'Número de estudiantes'
+hay_ceros <- any(data$`Número de estudiantes` == 0)
+
+# Asegurar de que no hay filas con 0s
+print(hay_ceros)
+```
+
+### 9.2. Visualizaciones
+
+#### 9.2.1. Número de estudiantes por comunidad autónoma
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Comunidad.Autónoma`)) +
+  geom_bar(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Distribución de Estudiantes por Comunidad Autónoma", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.2. Número de estudiantes por forma de admisión
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Forma.de.admisión`)) +
+  geom_bar(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Distribución de Estudiantes por Forma de Admisión", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.3. Proporción de hombres y mujeres
+
+```{r}
+
+ggplot(data, aes(x = "", fill = Sexo)) +
+  geom_bar(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Distribución de Estudiantes por Sexo", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.4. Proporción de ramas de enseñanza
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Rama.de.enseñanza`)) +
+  geom_bar(stat = "count", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Frecuencia de Ramas de Enseñanza", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.5. Proporción de ámbitos de estudio
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Ámbito.de.estudio`)) +
+  geom_bar(stat = "count", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Frecuencia de Ámbitos de Estudio", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.6. Proporción de universidades
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Universidad`)) +
+  geom_bar(stat = "count", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Frecuencia de Universidades", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+#### 9.2.7. Proporción de zonas de nacionalidad
+
+```{r}
+
+ggplot(data, aes(x = "", fill = `Zona.de.nacionalidad`)) +
+  geom_bar(stat = "count", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Frecuencia de Zonas de Nacionalidad", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+## 10. Matrices de correlación
+
+### 10.1. Tratamiento previo
+
+```{r}
+
+#Limpieza de NA de la variable 'Número de estudiantes'
+data <- data[complete.cases(data$`Número.de.estudiantes`), ]
+
+#Limpieza de NA de la variable 'Nota media'
+data <- data[complete.cases(data$Nota.media), ]
+```
+
+### 10.2. Visualizaciones
+
+#### 10.2.1. Estudio sobre ámbitos de estudio
+
+##### 10.2.1.1. Economía
+
+```{r}
+
+datos_economia <- subset(data, data$Ámbito.de.estudio == "Economía")
+
+matriz_correlacion_economia <- cor(datos_economia[, c("Nota.media", "Número.de.estudiantes")])
+print("Matriz de correlación para Economía: \n")
+print(matriz_correlacion_economia)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_economia, method = "color")
+```
+
+Cálculo de la matriz de correlación para la variable "Comunidad Autónoma" y "Nota media".
+
+```{r}
+
+# Convertir la variable categórica "Comunidad Autónoma" en un formato numérico
+datos_economia$Comunidad.Autónoma <- as.numeric(as.factor(datos_economia$Comunidad.Autónoma ))
+
+# Calcular la matriz de correlación
+matriz_correlacion_economia_comunidad <- cor(datos_economia[, c("Comunidad.Autónoma", "Nota.media")])
+
+print("Matriz de correlación para Economía (Comunidad Autónoma y nota media): \n")
+print(matriz_correlacion_economia_comunidad)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_economia_comunidad, method = "color")
+```
+
+##### 10.2.1.1. Derecho
+
+```{r}
+
+datos_derecho <- subset(data, data$Ámbito.de.estudio == "Derecho")
+
+matriz_correlacion_derecho <- cor(datos_derecho[, c("Nota.media", "Número.de.estudiantes")])
+
+print("Matriz de correlación para Derecho: \n")
+print(matriz_correlacion_derecho)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_derecho, method = "color")
+```
+
+Cálculo de la matriz de correlación para la variable "Comunidad Autónoma" y "Nota media".
+
+```{r}
+
+# Convertir la variable categórica "Universidad" en un formato numérico
+datos_derecho$Universidad <- as.numeric(as.factor(datos_derecho$Universidad))
+
+# Calcular la matriz de correlación
+matriz_correlacion_derecho_universidad <- cor(datos_derecho[, c("Universidad", "Nota.media")])
+
+print("Matriz de correlación para Derecho (Universidad y nota media): \n")
+print(matriz_correlacion_derecho_universidad)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_derecho_universidad, method = "color")
+```
+
+#### 10.2.2. Estudio sobre forma de admisión
+
+##### 10.2.2.1. PAU
+
+```{r}
+
+datos_pau <- subset(data, data$`Forma.de.admisión` == "PAU")
+
+matriz_correlacion_pau <- cor(datos_pau[, c("Nota.media", "Número.de.estudiantes")])
+
+print("Matriz de correlación para PAU: \n")
+print(matriz_correlacion_pau)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_pau, method = "color")
+```
+
+Cálculo de la matriz de correlación para la variable "Rama de enseñanza" y "Zona de nacionalidad".
+
+```{r}
+
+# Convertir la variable categórica "Rama de enseñanza" en un formato numérico
+datos_pau$`Rama.de.enseñanza` <- as.numeric(as.factor(datos_pau$`Rama.de.enseñanza`))
+
+# Convertir la variable categórica "Zona de nacionalidad" en un formato numérico
+datos_pau$`Zona.de.nacionalidad` <- as.numeric(as.factor(datos_pau$`Zona.de.nacionalidad`))
+
+# Calcular la matriz de correlación
+matriz_correlacion_pau_rama_zona <- cor(datos_pau[, c("Rama.de.enseñanza", "Zona.de.nacionalidad")])
+
+print("Matriz de correlación para PAU (Rama de enseñanza y Zona de nacionalidad): \n")
+print(matriz_correlacion_pau_rama_zona)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_pau_rama_zona, method = "color")
+```
+
+##### 10.2.2.1. FP
+
+```{r}
+
+datos_fp <- subset(data, data$`Forma.de.admisión` == "FP")
+
+matriz_correlacion_fp <- cor(datos_fp[, c("Nota.media", "Número.de.estudiantes")])
+
+print("Matriz de correlación para FP: \n")
+print(matriz_correlacion_fp)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_fp, method = "color")
+```
+
+Cálculo de la matriz de correlación para la variable "Sexo" y "Nota media".
+
+```{r}
+
+# Convertir la variable categórica "Sexo"en un formato numérico
+datos_fp$Sexo <- as.numeric(as.factor(datos_fp$Sexo))
+
+# Calcular la matriz de correlación
+matriz_correlacion_fp_sexo <- cor(datos_fp[, c("Sexo", "Nota.media")])
+
+print("Matriz de correlación para FP (Sexo y nota media): \n")
+print(matriz_correlacion_fp_sexo)
+
+# Visualización de la matriz de correlación
+corrplot(matriz_correlacion_fp_sexo, method = "color")
+```
+
+## 11. Estadísticas descriptivas
+
+### 11.1. Análisis descriptivo de variables
+
+#### 11.1.1. Estadísticas descriptivas para la variable "Nota media"
+
+```{r}
+
+nota_media_summary  <- summary(datos$`Nota media`)
+
+# Frecuencia de cada comunidad autónoma
+frecuencias_autonoma <- table(datos$`Comunidad Autónoma`)
+
+# Verificar valores perdidos
+print(sum(is.na(datos$Nota.media)))
+print(sum(is.na(datos$Número.de.estudiantes)))
+```
+
+Los resultados de *sum* son 0, por lo que no hay valores perdidos en estas variables.
+
+```{r}
+
+# Imputar con la mediana (puedes ajustar según tus necesidades)
+datos$Nota.media[is.na(data$Nota.media)] <- median(datos$Nota.media, na.rm = TRUE)
+
+# Matriz de correlación para variables numéricas
+cor(data[, c("Nota.media", "Número.de.estudiantes")])
+
+# Los resultados muestran que la correlación entre Nota media y Número de estudiantes es 0.01, muy baja, por lo que no hay una relación lineal entre estas variables
+# Diagrama de dispersión para visualizar la relación entre Nota media y Número de estudiantes
+ggplot(data, aes(x = `Nota.media`, y = `Número.de.estudiantes`)) +
+  geom_point() +
+  labs(title = "Relación entre Nota media y Número de estudiantes")
+```
+
+#### 11.1.2. Estadísticas descriptivas para la variable "Nota media" por comunidad autónoma
+
+```{r}
+
+nota_media_por_autonoma <- data %>% 
+  group_by(`Comunidad.Autónoma`) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_autonoma)
+```
+
+#### 11.1.3. Estadísticas descriptivas para la variable "Número de estudiantes" por comunidad autónoma
+
+```{r}
+
+numero_estudiantes_por_autonoma <- data %>% 
+  group_by(`Comunidad.Autónoma`) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_autonoma)
+```
+
+#### 11.1.4. Estadísticas descriptivas para la variable "Nota media" por universidad
+
+```{r}
+
+nota_media_por_universidad <- data %>% 
+  group_by(Universidad) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_universidad)
+```
+
+#### 11.1.5. Estadísticas descriptivas para la variable "Número de estudiantes" por universidad
+
+```{r}
+
+numero_estudiantes_por_universidad <- data %>% 
+  group_by(Universidad) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_universidad)
+```
+
+#### 11.1.6. Estadísticas descriptivas para la variable "Nota media" por sexo
+
+```{r}
+
+nota_media_por_sexo <- data %>% 
+  group_by(Sexo) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_sexo)
+```
+
+#### 11.1.7. Estadísticas descriptivas para la variable "Número de estudiantes" por sexo
+
+```{r}
+
+numero_estudiantes_por_sexo <- data %>% 
+  group_by(Sexo) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_sexo)
+```
+
+#### 11.1.8. Estadísticas descriptivas para la variable "Nota media" por comunidad autónoma y universidad
+
+```{r}
+
+nota_media_por_autonoma_universidad <- data %>% 
+  group_by(`Comunidad.Autónoma`, Universidad) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_autonoma_universidad)
+```
+
+#### 11.1.9. Estadísticas descriptivas para la variable "Número de estudiantes" por comunidad autónoma y universidad
+
+```{r}
+
+numero_estudiantes_por_autonoma_universidad <- data %>% 
+  group_by(`Comunidad.Autónoma`, Universidad) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_autonoma_universidad)
+```
+
+#### 11.1.10. Estadísticas descriptivas para la variable "Nota media" por comunidad autónoma y sexo
+
+```{r}
+
+nota_media_por_autonoma_sexo <- data %>% 
+  group_by(`Comunidad.Autónoma`, Sexo) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_autonoma_sexo)
+```
+
+#### 11.1.11. Estadísticas descriptivas para la variable "Número de estudiantes" por comunidad autónoma y sexo
+
+```{r}
+
+numero_estudiantes_por_autonoma_sexo <- data %>% 
+  group_by(`Comunidad.Autónoma`, Sexo) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_autonoma_sexo)
+```
+
+#### 11.1.12. Estadísticas descriptivas para la variable "Nota media" por universidad y sexo
+
+```{r}
+
+nota_media_por_universidad_sexo <- data %>% 
+  group_by(Universidad, Sexo) %>% 
+  summarise(Mediana = median(`Nota.media`), 
+            Media = mean(`Nota.media`), 
+            Desviación_estándar = sd(`Nota.media`), 
+            Mínimo = min(`Nota.media`), 
+            Máximo = max(`Nota.media`))
+
+print(nota_media_por_universidad_sexo)
+```
+
+#### 11.1.13. Estadísticas descriptivas para la variable "Número de estudiantes" por universidad y sexo
+
+```{r}
+
+numero_estudiantes_por_universidad_sexo <- data %>% 
+  group_by(Universidad, Sexo) %>% 
+  summarise(Mediana = median(`Número.de.estudiantes`), 
+            Media = mean(`Número.de.estudiantes`), 
+            Desviación_estándar = sd(`Número.de.estudiantes`), 
+            Mínimo = min(`Número.de.estudiantes`), 
+            Máximo = max(`Número.de.estudiantes`))
+
+print(numero_estudiantes_por_universidad_sexo)
+```
